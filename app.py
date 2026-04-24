@@ -22,6 +22,12 @@ from summarizer.ingestion import clean_text, extract_from_pdf, extract_from_url
 
 logging.basicConfig(level=logging.WARNING)
 
+
+# Cache the engine per model_id across all reruns — prevents re-download on every button click
+@st.cache_resource(show_spinner="Loading model… (first run only, ~1 min)")
+def load_engine(model_id: str) -> SummarizationEngine:
+    return SummarizationEngine(model_id)
+
 # ─── Page Config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="AI Text Summarizer",
@@ -44,17 +50,6 @@ st.markdown(
   .app-sub {
     text-align: center; color: #9ca3af; font-size: 0.92rem;
     margin-bottom: 1.6rem; letter-spacing: 0.03em;
-  }
-
-  /* ── Summary box — transparent tinted, works in light & dark ── */
-  .summary-box {
-    border-left: 4px solid #667eea;
-    border-radius: 0 10px 10px 0;
-    padding: 1.1rem 1.5rem;
-    font-size: 1.05rem;
-    line-height: 1.75;
-    background: rgba(102, 126, 234, 0.10);
-    margin-top: 0.5rem;
   }
 
   /* ── Model badges ── */
@@ -305,27 +300,24 @@ with tab_sum:
             st.warning("Please provide at least 20 words of input text.")
         else:
             try:
-                engine = SummarizationEngine.get_or_create(model_id)
+                # load_engine is @st.cache_resource — returns instantly after first load
+                engine = load_engine(model_id)
 
                 if streaming:
                     st.markdown("**Summary**")
                     ph = st.empty()
                     accumulated = ""
+                    with st.container(border=True):
+                        stream_ph = st.empty()
                     for tok in engine.stream(text_input, max_length=max_length, min_length=min_length):
                         accumulated += tok
-                        ph.markdown(
-                            f'<div class="summary-box">{accumulated}▌</div>',
-                            unsafe_allow_html=True,
-                        )
-                    ph.markdown(
-                        f'<div class="summary-box">{accumulated}</div>',
-                        unsafe_allow_html=True,
-                    )
-                    summary   = accumulated
-                    in_tok    = len(words)
-                    out_tok   = len(summary.split())
-                    cr        = round(in_tok / max(out_tok, 1), 2)
-                    latency   = None
+                        stream_ph.write(accumulated + "▌")
+                    stream_ph.write(accumulated)
+                    summary = accumulated
+                    in_tok  = len(words)
+                    out_tok = len(summary.split())
+                    cr      = round(in_tok / max(out_tok, 1), 2)
+                    latency = None
                 else:
                     with st.spinner(f"Summarizing with {MODELS[model_id]['name']}…"):
                         result = engine.summarize(
@@ -341,10 +333,8 @@ with tab_sum:
                     latency = result.latency_ms
 
                     st.markdown("**Summary**")
-                    st.markdown(
-                        f'<div class="summary-box">{summary}</div>',
-                        unsafe_allow_html=True,
-                    )
+                    with st.container(border=True):
+                        st.write(summary)
 
                 # Metrics
                 st.markdown("")
@@ -420,7 +410,7 @@ with tab_cmp:
             prog.progress((i + 1) / len(selected_models),
                           text=f"Running {MODELS[mid]['name']}…")
             try:
-                eng = SummarizationEngine.get_or_create(mid)
+                eng = load_engine(mid)
                 cmp_results[mid] = eng.summarize(
                     cmp_text, max_length=max_length, min_length=min_length
                 )
@@ -437,10 +427,8 @@ with tab_cmp:
                 if isinstance(r, Exception):
                     st.error(str(r))
                 else:
-                    st.markdown(
-                        f'<div class="summary-box" style="min-height:130px">{r.summary}</div>',
-                        unsafe_allow_html=True,
-                    )
+                    with st.container(border=True):
+                        st.write(r.summary)
                     st.metric("Compression", f"{r.compression_ratio:.1f}×")
                     st.metric("Latency",     f"{r.latency_ms:.0f} ms")
 
