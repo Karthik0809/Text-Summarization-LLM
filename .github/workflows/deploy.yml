@@ -18,7 +18,7 @@ jobs:
       - name: Push to HuggingFace Spaces
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          # Set HF_USERNAME in your repo secrets, e.g. karthik0809
+          # Set HF_USERNAME in your repo secrets, e.g. karthikmulugu08
           HF_USERNAME: ${{ secrets.HF_USERNAME }}
         run: |
           git config --global user.email "actions@github.com"

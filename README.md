@@ -3,9 +3,8 @@ title: Advanced Text Summarization with BART
 emoji: 🔬
 colorFrom: blue
 colorTo: indigo
-sdk: streamlit
-sdk_version: 1.33.0
-app_file: app.py
+sdk: docker
+app_port: 7860
 pinned: true
 license: mit
 ---
@@ -15,13 +14,13 @@ license: mit
 [![CI](https://github.com/Karthik0809/Text-Summarization-Using-BART/actions/workflows/ci.yml/badge.svg)](https://github.com/Karthik0809/Text-Summarization-Using-BART/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![HuggingFace Spaces](https://img.shields.io/badge/🤗%20HF-Spaces-orange)](https://huggingface.co/spaces/karthik0809/text-summarizer)
+[![HuggingFace Spaces](https://img.shields.io/badge/🤗%20HF-Spaces-orange)](https://huggingface.co/spaces/karthikmulugu08/text-summarizer)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](Dockerfile)
 
 Production-grade abstractive text summarization engine supporting **BART**, **PEGASUS**, and **T5** with a FastAPI REST backend, multi-modal input (text / PDF / URL), real-time token streaming, model comparison, and a full evaluation dashboard — deployed to HuggingFace Spaces.
 
-> **Live Demo →** [huggingface.co/spaces/karthik0809/text-summarizer](https://huggingface.co/spaces/karthik0809/text-summarizer)
+> **Live Demo →** [huggingface.co/spaces/karthikmulugu08/text-summarizer](https://huggingface.co/spaces/karthikmulugu08/text-summarizer)
 
 ---
 
