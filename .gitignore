@@ -41,8 +41,8 @@ coverage.xml
 htmlcov/
 .mypy_cache/
 
-# Streamlit
-.streamlit/
+# Streamlit (config.toml IS tracked; only ignore local secrets)
+.streamlit/secrets.toml
 summary_history.csv
 
 # Data outputs
