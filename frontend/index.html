@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Text Summarizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header class="app-header">
+  <div class="header-left">
+    <span class="logo-icon">🔬</span>
+    <div>
+      <div class="logo-text">Advanced Text Summarization</div>
+      <div class="logo-sub">BART · PEGASUS · T5 · AI Agent</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill" id="statusPill">
+      <span class="status-dot"></span>
+      <span id="statusText">Connecting…</span>
+    </div>
+    <a href="/api/docs" target="_blank" class="btn-ghost btn-sm">API Docs ↗</a>
+  </div>
+</header>
+
+<!-- ═══════════════════ TABS ═══════════════════ -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="summarize">📝 Summarize</button>
+  <button class="tab-btn" data-tab="compare">⚖️ Compare</button>
+  <button class="tab-btn" data-tab="batch">📁 Batch</button>
+  <button class="tab-btn" data-tab="evaluate">📈 Evaluate</button>
+  <button class="tab-btn agent-tab" data-tab="agent">🤖 AI Agent</button>
+</nav>
+
+<!-- ═══════════════════ TAB: SUMMARIZE ═══════════════════ -->
+<main class="tab-pane active" id="tab-summarize">
+  <div class="split-panel">
+
+    <!-- ── Left: Input ── -->
+    <div class="panel" id="inputPanel">
+      <div class="panel-header">
+        <h2 class="panel-title">Input</h2>
+        <div class="mode-tabs">
+          <button class="mode-btn active" data-mode="text">✍️ Text</button>
+          <button class="mode-btn" data-mode="url">🌐 URL</button>
+          <button class="mode-btn" data-mode="pdf">📄 PDF</button>
+        </div>
+      </div>
+
+      <!-- Model selector -->
+      <div class="model-selector-wrap">
+        <label class="field-label">Model</label>
+        <div class="model-grid" id="modelGrid"><!-- filled by JS --></div>
+      </div>
+
+      <!-- Advanced params (collapsible) -->
+      <details class="params-details">
+        <summary>⚙️ Generation Parameters</summary>
+        <div class="params-grid">
+          <div class="param-row">
+            <label>Max tokens <span id="maxLenVal">256</span></label>
+            <input type="range" id="maxLen" min="50" max="512" value="256" step="10" />
+          </div>
+          <div class="param-row">
+            <label>Min tokens <span id="minLenVal">50</span></label>
+            <input type="range" id="minLen" min="10" max="200" value="50" step="5" />
+          </div>
+          <div class="param-row">
+            <label>Beam width</label>
+            <select id="numBeams">
+              <option value="1">1 — Greedy</option>
+              <option value="2">2</option>
+              <option value="4" selected>4 — Recommended</option>
+              <option value="6">6</option>
+              <option value="8">8 — Best quality</option>
+            </select>
+          </div>
+        </div>
+      </details>
+
+      <!-- ── Text mode ── -->
+      <div class="input-mode" id="mode-text">
+        <div class="sample-row">
+          <label class="field-label">Sample</label>
+          <select id="sampleSelect">
+            <option value="">— paste your own —</option>
+            <option value="climate">🌍 Climate Science</option>
+            <option value="ai">🤖 AI Research</option>
+            <option value="cloud">☁️ Cloud & DevOps</option>
+          </select>
+        </div>
+        <textarea id="inputText" placeholder="Paste any article, research paper, or report here…" rows="12"></textarea>
+        <div class="word-count-row">
+          <span id="wordCount" class="word-count">0 words</span>
+          <span class="word-hint">Aim for 100–1000 words for best results</span>
+        </div>
+      </div>
+
+      <!-- ── URL mode ── -->
+      <div class="input-mode hidden" id="mode-url">
+        <label class="field-label">Article URL</label>
+        <div class="url-row">
+          <input type="url" id="urlInput" placeholder="https://example.com/article" />
+          <button class="btn-secondary" id="fetchUrlBtn">🔍 Fetch</button>
+        </div>
+        <div id="urlStatus" class="url-status"></div>
+        <div id="urlPreview" class="url-preview hidden">
+          <div class="url-preview-title" id="urlPreviewTitle"></div>
+          <div class="url-preview-text" id="urlPreviewText"></div>
+        </div>
+      </div>
+
+      <!-- ── PDF mode ── -->
+      <div class="input-mode hidden" id="mode-pdf">
+        <div class="dropzone" id="pdfDropzone">
+          <div class="dropzone-icon">📄</div>
+          <div class="dropzone-text">Drop PDF here or <span class="link">click to browse</span></div>
+          <div class="dropzone-hint">Text-based PDFs only · Max ~50 pages</div>
+          <input type="file" id="pdfInput" accept=".pdf" hidden />
+        </div>
+        <div id="pdfStatus" class="pdf-status hidden"></div>
+      </div>
+
+      <!-- ── Generate button ── -->
+      <div class="generate-row">
+        <button class="btn-primary btn-generate" id="generateBtn">
+          <span class="btn-icon">🚀</span>
+          <span class="btn-label">Generate Summary</span>
+        </button>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="streamToggle" />
+          <span class="toggle-track"></span>
+          <span class="toggle-label">⚡ Stream</span>
+        </label>
+      </div>
+    </div><!-- /inputPanel -->
+
+    <!-- ── Right: Output ── -->
+    <div class="panel" id="outputPanel">
+      <div class="panel-header">
+        <h2 class="panel-title">Summary</h2>
+        <div class="output-actions" id="outputActions" style="display:none">
+          <button class="btn-icon-sm" id="copyBtn" title="Copy summary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+          <div class="export-wrap">
+            <button class="btn-icon-sm" id="exportBtn" title="Export">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <div class="export-menu hidden" id="exportMenu">
+              <button data-fmt="txt">📄 Plain Text (.txt)</button>
+              <button data-fmt="json">🔧 JSON</button>
+              <button data-fmt="md">📝 Markdown (.md)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">💬</div>
+        <p class="empty-title">Your summary will appear here</p>
+        <p class="empty-sub">Enter text on the left and click <strong>Generate Summary</strong></p>
+      </div>
+
+      <!-- Loading state -->
+      <div class="loading-state hidden" id="loadingState">
+        <div class="pulse-ring"></div>
+        <p id="loadingMsg">Loading model…</p>
+        <p class="loading-sub">First run downloads the model (~300 MB). Subsequent runs are instant.</p>
+      </div>
+
+      <!-- Result -->
+      <div class="result-area hidden" id="resultArea">
+        <div class="summary-card">
+          <div class="summary-text" id="summaryText"></div>
+          <div class="summary-cursor hidden" id="summaryCursor">▌</div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-value" id="mIn">—</div>
+            <div class="metric-label">📥 Input tokens</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="mOut">—</div>
+            <div class="metric-label">📤 Output tokens</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="mComp">—</div>
+            <div class="metric-label">🗜️ Compression</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="mLat">—</div>
+            <div class="metric-label">⏱️ Latency</div>
+          </div>
+        </div>
+        <div class="model-badge-row">
+          <span class="result-model-tag" id="resultModelTag"></span>
+        </div>
+      </div>
+    </div><!-- /outputPanel -->
+  </div><!-- /split-panel -->
+
+  <!-- History -->
+  <div class="history-section" id="historySection" style="display:none">
+    <div class="history-header">
+      <h3>📜 History</h3>
+      <button class="btn-ghost btn-sm" id="clearHistoryBtn">Clear</button>
+    </div>
+    <div class="history-table-wrap">
+      <table class="history-table" id="historyTable">
+        <thead><tr><th>Time</th><th>Model</th><th>Input</th><th>Output</th><th>Compression</th><th>Preview</th></tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════════════ TAB: COMPARE ═══════════════════ -->
+<main class="tab-pane hidden" id="tab-compare">
+  <div class="compare-container">
+    <div class="compare-input-area">
+      <label class="field-label">Input Text</label>
+      <textarea id="cmpText" rows="8" placeholder="Paste text to compare across models…"></textarea>
+      <div class="compare-controls">
+        <div class="multi-model-select">
+          <label class="field-label">Select Models</label>
+          <div class="model-checkbox-grid" id="cmpModelGrid"><!-- filled by JS --></div>
+        </div>
+        <button class="btn-primary" id="compareBtn">⚖️ Run Comparison</button>
+      </div>
+    </div>
+    <div class="compare-results hidden" id="compareResults">
+      <div class="compare-cards" id="compareCards"></div>
+      <div class="compare-chart-wrap">
+        <canvas id="compareChart" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════════════ TAB: BATCH ═══════════════════ -->
+<main class="tab-pane hidden" id="tab-batch">
+  <div class="batch-container">
+    <div class="batch-controls">
+      <div class="batch-mode-tabs">
+        <button class="mode-btn active" data-batch-mode="manual">✍️ Manual</button>
+        <button class="mode-btn" data-batch-mode="csv">📊 CSV Upload</button>
+      </div>
+
+      <div id="batchModeManual">
+        <label class="field-label">Texts (separate with <code>---</code>)</label>
+        <textarea id="batchInput" rows="12" placeholder="First article text here&#10;---&#10;Second article text here&#10;---&#10;Third article text here"></textarea>
+        <div id="batchCount" class="batch-count"></div>
+      </div>
+
+      <div id="batchModeCsv" class="hidden">
+        <label class="field-label">CSV file with a <code>text</code> column</label>
+        <div class="dropzone" id="csvDropzone">
+          <div class="dropzone-icon">📊</div>
+          <div class="dropzone-text">Drop CSV here or <span class="link">click to browse</span></div>
+          <input type="file" id="csvInput" accept=".csv" hidden />
+        </div>
+        <div id="csvStatus"></div>
+      </div>
+
+      <div class="batch-footer-controls">
+        <div class="batch-model-row">
+          <label class="field-label">Model</label>
+          <select id="batchModelSelect"></select>
+        </div>
+        <button class="btn-primary" id="batchRunBtn">🚀 Process Batch</button>
+      </div>
+    </div>
+
+    <div class="batch-results hidden" id="batchResults">
+      <div class="batch-results-header">
+        <h3 id="batchResultsTitle"></h3>
+        <button class="btn-secondary" id="batchDownloadBtn">📥 Download CSV</button>
+      </div>
+      <div class="batch-table-wrap">
+        <table class="history-table" id="batchTable">
+          <thead><tr><th>#</th><th>Preview</th><th>Summary</th><th>Compression</th><th>Status</th></tr></thead>
+          <tbody id="batchBody"></tbody>
+        </table>
+      </div>
+      <div class="batch-progress-wrap hidden" id="batchProgress">
+        <div class="progress-bar-track"><div class="progress-bar-fill" id="batchProgressFill"></div></div>
+        <div class="progress-label" id="batchProgressLabel"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════════════ TAB: EVALUATE ═══════════════════ -->
+<main class="tab-pane hidden" id="tab-evaluate">
+  <div class="evaluate-container">
+    <div class="eval-inputs">
+      <div class="eval-col">
+        <label class="field-label">📋 Reference Summary (ground truth)</label>
+        <textarea id="evalRef" rows="8" placeholder="Paste the reference / ground-truth summary…"></textarea>
+      </div>
+      <div class="eval-col">
+        <label class="field-label">🤖 Generated Summary</label>
+        <textarea id="evalGen" rows="8" placeholder="Paste the generated summary to evaluate…" id="evalGen"></textarea>
+        <button class="btn-ghost btn-sm" id="useLastSummary" style="margin-top:6px">↑ Use last summary</button>
+      </div>
+    </div>
+    <button class="btn-primary" id="evalRunBtn">📊 Compute ROUGE Metrics</button>
+
+    <div class="eval-results hidden" id="evalResults">
+      <div class="rouge-gauge-row" id="rougeGauges"></div>
+      <div class="eval-extra-metrics">
+        <div class="metric-card"><div class="metric-value" id="evalComp">—</div><div class="metric-label">🗜️ Compression</div></div>
+        <div class="metric-card"><div class="metric-value" id="evalSentLen">—</div><div class="metric-label">📏 Avg sentence</div></div>
+        <div class="metric-card"><div class="metric-value" id="evalRougeLsum">—</div><div class="metric-label">📊 ROUGE-Lsum</div></div>
+      </div>
+      <canvas id="evalRadar" height="260" style="max-width:400px;margin:1.5rem auto;display:block"></canvas>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════════════ TAB: AI AGENT ═══════════════════ -->
+<main class="tab-pane hidden" id="tab-agent">
+  <div class="agent-container">
+    <div class="agent-hero">
+      <div class="agent-hero-icon">🤖</div>
+      <h2>AI Summarization Agent</h2>
+      <p>The agent <strong>analyzes your text</strong>, picks the optimal model for its domain,
+         evaluates summary quality, and <strong>retries automatically</strong> if quality is below threshold.</p>
+    </div>
+
+    <div class="agent-input-area">
+      <label class="field-label">Input Text</label>
+      <textarea id="agentInput" rows="10" placeholder="Paste your text — the agent will figure out the rest…"></textarea>
+      <button class="btn-primary btn-agent" id="agentRunBtn">🤖 Run Agent</button>
+    </div>
+
+    <!-- Agent progress steps (shown during run) -->
+    <div class="agent-steps hidden" id="agentSteps">
+      <div class="agent-step" id="agentStep1">
+        <div class="step-icon">🔍</div>
+        <div class="step-content">
+          <div class="step-title">Analyzing text…</div>
+          <div class="step-detail" id="agentStep1Detail"></div>
+        </div>
+        <div class="step-status pending" id="agentStep1Status">○</div>
+      </div>
+      <div class="agent-step" id="agentStep2">
+        <div class="step-icon">🎯</div>
+        <div class="step-content">
+          <div class="step-title">Selecting model…</div>
+          <div class="step-detail" id="agentStep2Detail"></div>
+        </div>
+        <div class="step-status pending" id="agentStep2Status">○</div>
+      </div>
+      <div class="agent-step" id="agentStep3">
+        <div class="step-icon">⚡</div>
+        <div class="step-content">
+          <div class="step-title">Generating summary…</div>
+          <div class="step-detail" id="agentStep3Detail"></div>
+        </div>
+        <div class="step-status pending" id="agentStep3Status">○</div>
+      </div>
+      <div class="agent-step" id="agentStep4">
+        <div class="step-icon">📊</div>
+        <div class="step-content">
+          <div class="step-title">Evaluating quality…</div>
+          <div class="step-detail" id="agentStep4Detail"></div>
+        </div>
+        <div class="step-status pending" id="agentStep4Status">○</div>
+      </div>
+    </div>
+
+    <!-- Agent result -->
+    <div class="agent-result hidden" id="agentResult">
+      <div class="agent-result-header">
+        <div class="confidence-ring-wrap">
+          <svg class="confidence-ring" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="34" stroke="#30363d" stroke-width="8" fill="none"/>
+            <circle cx="40" cy="40" r="34" stroke="#667eea" stroke-width="8" fill="none"
+                    stroke-dasharray="213.6" stroke-dashoffset="213.6"
+                    stroke-linecap="round" transform="rotate(-90 40 40)"
+                    id="confidenceCircle"/>
+          </svg>
+          <div class="confidence-label">
+            <span id="confidencePct">0%</span>
+            <small>confidence</small>
+          </div>
+        </div>
+        <div class="agent-meta">
+          <div class="agent-meta-row"><span class="meta-key">Model used</span><span class="meta-val" id="agentModelUsed">—</span></div>
+          <div class="agent-meta-row"><span class="meta-key">Domain detected</span><span class="meta-val" id="agentDomain">—</span></div>
+          <div class="agent-meta-row"><span class="meta-key">Quality score</span><span class="meta-val" id="agentQuality">—</span></div>
+          <div class="agent-meta-row"><span class="meta-key">Total latency</span><span class="meta-val" id="agentLatency">—</span></div>
+          <div class="agent-meta-row"><span class="meta-key">Attempts</span><span class="meta-val" id="agentAttempts">—</span></div>
+        </div>
+      </div>
+
+      <div class="agent-summary-card">
+        <h4>Summary</h4>
+        <div id="agentSummaryText" class="summary-text"></div>
+      </div>
+
+      <div class="agent-analysis-card">
+        <h4>Text Analysis</h4>
+        <div id="agentAnalysis" class="analysis-grid"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════════════ TOAST CONTAINER ═══════════════════ -->
+<div id="toastContainer"></div>
+
+<script src="/static/js/api.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

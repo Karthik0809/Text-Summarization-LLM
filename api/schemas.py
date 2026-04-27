@@ -3,8 +3,8 @@ from pydantic import BaseModel, Field
 
 
 class SummarizeRequest(BaseModel):
-    text: str = Field(..., min_length=50, description="Text to summarize (min 50 chars)")
-    model_id: str = Field("sshleifer/distilbart-cnn-12-6", description="HuggingFace model ID")
+    text: str = Field(..., min_length=50)
+    model_id: str = Field("sshleifer/distilbart-cnn-12-6")
     max_length: int = Field(256, ge=50, le=512)
     min_length: int = Field(50, ge=10, le=200)
     num_beams: int = Field(4, ge=1, le=8)
@@ -21,7 +21,7 @@ class SummarizeResponse(BaseModel):
 
 
 class URLRequest(BaseModel):
-    url: str = Field(..., description="Web article URL")
+    url: str
     model_id: str = "sshleifer/distilbart-cnn-12-6"
     max_length: int = 256
     min_length: int = 50
@@ -41,6 +41,21 @@ class CompareRequest(BaseModel):
     )
     max_length: int = 256
     min_length: int = 50
+
+
+class AgentRequest(BaseModel):
+    text: str = Field(..., min_length=50, description="Text for the AI agent to summarize")
+
+
+class AgentResponse(BaseModel):
+    summary: str
+    model_id: str
+    confidence: float
+    quality_score: float
+    total_latency_ms: float
+    analysis: dict[str, Any]
+    steps: list[dict[str, Any]]
+    selected_reason: str
 
 
 class ModelInfo(BaseModel):
