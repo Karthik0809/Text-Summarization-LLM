@@ -17,14 +17,18 @@ let currentMode = 'text';
 let lastSummary = '';
 let history = JSON.parse(localStorage.getItem('sums_history') || '[]');
 let pdfFile = null;
-let urlFetched = null; // { title, text }
+
+/* ── Helpers ──────────────────────────────────────────── */
+function show(el) { if (typeof el === 'string') el = document.getElementById(el); el.style.display = ''; }
+function hide(el) { if (typeof el === 'string') el = document.getElementById(el); el.style.display = 'none'; }
+function showFlex(el) { if (typeof el === 'string') el = document.getElementById(el); el.style.display = 'flex'; }
 
 /* ═══════════════════ TOAST ═══════════════════ */
 function toast(msg, type = 'info', dur = 3000) {
-  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const icons = { success: '✓', error: '✗', info: 'i' };
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.innerHTML = `<span>${icons[type] || '📢'}</span><span>${msg}</span>`;
+  el.innerHTML = `<span class="toast-icon">${icons[type] || 'i'}</span><span>${msg}</span>`;
   document.getElementById('toastContainer').appendChild(el);
   setTimeout(() => {
     el.classList.add('removing');
@@ -120,7 +124,8 @@ document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
     document.querySelectorAll('.mode-btn[data-mode]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     ['text', 'url', 'pdf'].forEach(m => {
-      document.getElementById(`mode-${m}`).classList.toggle('hidden', m !== currentMode);
+      const el = document.getElementById(`mode-${m}`);
+      el.style.display = m === currentMode ? '' : 'none';
     });
   });
 });
@@ -149,13 +154,12 @@ document.getElementById('minLen').addEventListener('input', function () {
 
 /* ═══════════════════ PDF DROPZONE ═══════════════════ */
 (function setupPdfDropzone() {
-  const zone  = document.getElementById('pdfDropzone');
-  const input = document.getElementById('pdfInput');
+  const zone   = document.getElementById('pdfDropzone');
+  const input  = document.getElementById('pdfInput');
   const status = document.getElementById('pdfStatus');
 
   zone.addEventListener('click', () => input.click());
   input.addEventListener('change', () => { if (input.files[0]) setPdf(input.files[0]); });
-
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
   zone.addEventListener('drop', e => {
@@ -168,8 +172,8 @@ document.getElementById('minLen').addEventListener('input', function () {
 
   function setPdf(file) {
     pdfFile = file;
-    status.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
-    status.classList.remove('hidden');
+    status.textContent = `${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
+    status.style.display = '';
   }
 })();
 
@@ -180,22 +184,18 @@ document.getElementById('fetchUrlBtn').addEventListener('click', async () => {
   const preview  = document.getElementById('urlPreview');
   if (!url) { toast('Enter a URL first', 'error'); return; }
 
-  statusEl.textContent = '⏳ Fetching…';
-  preview.classList.add('hidden');
-  urlFetched = null;
+  statusEl.textContent = 'Fetching...';
+  preview.style.display = 'none';
 
   try {
     const res = await API.summarizeUrl(url, selectedModel);
-    urlFetched = { title: res.title, text: '', sourceUrl: url };
-    statusEl.textContent = `✅ Fetched — ${res.extracted_words ?? '?'} words`;
+    statusEl.textContent = `Fetched — ${res.extracted_words ?? '?'} words`;
     document.getElementById('urlPreviewTitle').textContent = res.title || url;
-    document.getElementById('urlPreviewText').textContent = res.summary
-      ? `[Pre-summarized] ${res.summary}` : '';
-    preview.classList.remove('hidden');
-    // Show result directly
+    document.getElementById('urlPreviewText').textContent = res.summary ? `Preview: ${res.summary}` : '';
+    preview.style.display = '';
     showResult(res);
   } catch (err) {
-    statusEl.textContent = `❌ ${err.message}`;
+    statusEl.textContent = `Error: ${err.message}`;
     toast(err.message, 'error');
   }
 });
@@ -204,29 +204,33 @@ document.getElementById('fetchUrlBtn').addEventListener('click', async () => {
 document.getElementById('generateBtn').addEventListener('click', handleGenerate);
 
 async function handleGenerate() {
-  const btn      = document.getElementById('generateBtn');
-  const stream   = document.getElementById('streamToggle').checked;
-  const maxLen   = parseInt(document.getElementById('maxLen').value);
-  const minLen   = parseInt(document.getElementById('minLen').value);
+  const btn    = document.getElementById('generateBtn');
+  const stream = document.getElementById('streamToggle').checked;
+  const maxLen = parseInt(document.getElementById('maxLen').value);
+  const minLen = parseInt(document.getElementById('minLen').value);
   const numBeams = parseInt(document.getElementById('numBeams').value);
 
   btn.disabled = true;
-
-  showLoading('Generating summary…');
+  showLoading('Generating summary...');
 
   try {
     if (currentMode === 'pdf') {
       if (!pdfFile) { toast('Drop a PDF first', 'error'); showEmpty(); btn.disabled = false; return; }
       const res = await API.summarizePdf(pdfFile, selectedModel, maxLen, minLen);
       showResult(res);
+
     } else if (currentMode === 'url') {
       const url = document.getElementById('urlInput').value.trim();
       if (!url) { toast('Enter a URL first', 'error'); showEmpty(); btn.disabled = false; return; }
       const res = await API.summarizeUrl(url, selectedModel, maxLen, minLen);
       showResult(res);
+
     } else {
       const text = document.getElementById('inputText').value.trim();
-      if (text.split(/\s+/).length < 10) { toast('Please enter at least 10 words', 'error'); showEmpty(); btn.disabled = false; return; }
+      if (text.split(/\s+/).length < 10) {
+        toast('Please enter at least 10 words', 'error');
+        showEmpty(); btn.disabled = false; return;
+      }
       const payload = { text, model_id: selectedModel, max_length: maxLen, min_length: minLen, num_beams: numBeams, length_penalty: 2.0 };
 
       if (stream) {
@@ -237,7 +241,7 @@ async function handleGenerate() {
           ()      => finishStream(payload),
           (err)   => { toast(err.message, 'error'); showEmpty(); btn.disabled = false; }
         );
-        return; // btn re-enabled in finishStream
+        return;
       } else {
         const res = await API.summarize(payload);
         showResult(res);
@@ -251,32 +255,32 @@ async function handleGenerate() {
   }
 }
 
-/* ── Output helpers ─────────────────────────────────── */
+/* ── Output state helpers ────────────────────────────── */
 function showEmpty() {
-  document.getElementById('emptyState').classList.remove('hidden');
-  document.getElementById('loadingState').classList.add('hidden');
-  document.getElementById('resultArea').classList.add('hidden');
-  document.getElementById('outputActions').style.display = 'none';
+  show('emptyState');
+  hide('loadingState');
+  hide('resultArea');
+  hide('outputActions');
 }
 function showLoading(msg) {
-  document.getElementById('emptyState').classList.add('hidden');
-  document.getElementById('loadingState').classList.remove('hidden');
-  document.getElementById('resultArea').classList.add('hidden');
+  hide('emptyState');
+  show('loadingState');
+  hide('resultArea');
+  hide('outputActions');
   document.getElementById('loadingMsg').textContent = msg;
-  document.getElementById('outputActions').style.display = 'none';
 }
 function showResult(res) {
-  document.getElementById('emptyState').classList.add('hidden');
-  document.getElementById('loadingState').classList.add('hidden');
-  document.getElementById('resultArea').classList.remove('hidden');
-  document.getElementById('outputActions').style.display = '';
-  document.getElementById('summaryCursor').classList.add('hidden');
+  hide('emptyState');
+  hide('loadingState');
+  show('resultArea');
+  show('outputActions');
+  hide('summaryCursor');
 
   const summary = res.summary || '';
   document.getElementById('summaryText').textContent = summary;
   document.getElementById('mIn').textContent   = res.input_tokens  ?? '—';
   document.getElementById('mOut').textContent  = res.output_tokens ?? '—';
-  document.getElementById('mComp').textContent = res.compression_ratio ? `${res.compression_ratio.toFixed(1)}×` : '—';
+  document.getElementById('mComp').textContent = res.compression_ratio ? `${res.compression_ratio.toFixed(1)}x` : '—';
   document.getElementById('mLat').textContent  = res.latency_ms ? `${res.latency_ms.toFixed(0)}ms` : '—';
   document.getElementById('resultModelTag').textContent = res.model_id || selectedModel;
 
@@ -289,12 +293,12 @@ function showResult(res) {
 let streamText = '';
 function showStreamStart() {
   streamText = '';
-  document.getElementById('emptyState').classList.add('hidden');
-  document.getElementById('loadingState').classList.add('hidden');
-  document.getElementById('resultArea').classList.remove('hidden');
-  document.getElementById('outputActions').style.display = '';
+  hide('emptyState');
+  hide('loadingState');
+  show('resultArea');
+  show('outputActions');
   document.getElementById('summaryText').textContent = '';
-  document.getElementById('summaryCursor').classList.remove('hidden');
+  show('summaryCursor');
   ['mIn','mOut','mComp','mLat'].forEach(id => document.getElementById(id).textContent = '—');
   document.getElementById('resultModelTag').textContent = selectedModel;
 }
@@ -303,32 +307,30 @@ function appendStreamToken(token) {
   document.getElementById('summaryText').textContent = streamText;
 }
 async function finishStream(payload) {
-  document.getElementById('summaryCursor').classList.add('hidden');
+  hide('summaryCursor');
   lastSummary = streamText;
-  // Fetch proper metrics via non-stream endpoint
   try {
     const res = await API.summarize({ ...payload, num_beams: 1 });
     document.getElementById('mIn').textContent   = res.input_tokens;
     document.getElementById('mOut').textContent  = res.output_tokens;
-    document.getElementById('mComp').textContent = `${res.compression_ratio.toFixed(1)}×`;
+    document.getElementById('mComp').textContent = `${res.compression_ratio.toFixed(1)}x`;
     document.getElementById('mLat').textContent  = `${res.latency_ms.toFixed(0)}ms`;
     addHistory(res);
-  } catch { /* metrics not critical */ }
+  } catch { /* metrics optional */ }
   document.getElementById('generateBtn').disabled = false;
 }
 
 /* ═══════════════════ COPY / EXPORT ═══════════════════ */
 document.getElementById('copyBtn').addEventListener('click', () => {
-  navigator.clipboard.writeText(lastSummary).then(() => toast('Copied to clipboard!', 'success'));
+  navigator.clipboard.writeText(lastSummary).then(() => toast('Copied to clipboard', 'success'));
 });
 
 document.getElementById('exportBtn').addEventListener('click', () => {
-  document.getElementById('exportMenu').classList.toggle('hidden');
+  const menu = document.getElementById('exportMenu');
+  menu.style.display = menu.style.display === 'none' ? '' : 'none';
 });
 document.addEventListener('click', e => {
-  if (!e.target.closest('.export-wrap')) {
-    document.getElementById('exportMenu').classList.add('hidden');
-  }
+  if (!e.target.closest('.export-wrap')) hide('exportMenu');
 });
 
 document.querySelectorAll('#exportMenu button').forEach(btn => {
@@ -339,11 +341,7 @@ document.querySelectorAll('#exportMenu button').forEach(btn => {
     if (fmt === 'txt') {
       content = lastSummary; mime = 'text/plain'; ext = 'txt';
     } else if (fmt === 'json') {
-      content = JSON.stringify({
-        summary: lastSummary,
-        model: selectedModel,
-        timestamp: new Date().toISOString(),
-      }, null, 2);
+      content = JSON.stringify({ summary: lastSummary, model: selectedModel, timestamp: new Date().toISOString() }, null, 2);
       mime = 'application/json'; ext = 'json';
     } else {
       content = `# Summary\n\n${lastSummary}\n\n---\n*Generated by AI Text Summarizer · ${new Date().toLocaleString()}*`;
@@ -355,7 +353,7 @@ document.querySelectorAll('#exportMenu button').forEach(btn => {
     a.download = `summary_${ts}.${ext}`;
     a.click();
     URL.revokeObjectURL(a.href);
-    document.getElementById('exportMenu').classList.add('hidden');
+    hide('exportMenu');
     toast(`Exported as .${ext}`, 'success');
   });
 });
@@ -367,14 +365,15 @@ function addHistory(res) {
     model: res.model_id || selectedModel,
     input: res.input_tokens ?? '—',
     output: res.output_tokens ?? '—',
-    compression: res.compression_ratio ? `${res.compression_ratio.toFixed(1)}×` : '—',
-    preview: (res.summary || '').slice(0, 80) + ((res.summary || '').length > 80 ? '…' : ''),
+    compression: res.compression_ratio ? `${res.compression_ratio.toFixed(1)}x` : '—',
+    preview: (res.summary || '').slice(0, 80) + ((res.summary || '').length > 80 ? '...' : ''),
   };
   history.unshift(row);
   if (history.length > 50) history = history.slice(0, 50);
   localStorage.setItem('sums_history', JSON.stringify(history));
   renderHistory();
 }
+
 function renderHistory() {
   const section = document.getElementById('historySection');
   const tbody   = document.getElementById('historyBody');
@@ -391,6 +390,7 @@ function renderHistory() {
     </tr>
   `).join('');
 }
+
 document.getElementById('clearHistoryBtn').addEventListener('click', () => {
   history = [];
   localStorage.removeItem('sums_history');
@@ -411,7 +411,7 @@ document.getElementById('compareBtn').addEventListener('click', async () => {
 
   const btn = document.getElementById('compareBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Running…';
+  btn.textContent = 'Running...';
 
   try {
     const res = await API.compare(text, modelIds);
@@ -420,19 +420,18 @@ document.getElementById('compareBtn').addEventListener('click', async () => {
     toast(err.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = '⚖️ Run Comparison';
+    btn.textContent = 'Run Comparison';
   }
 });
 
 function renderCompareResults(res) {
   const cards = document.getElementById('compareCards');
   cards.innerHTML = '';
-  const labels = [];
-  const latencies = [];
+  const labels = [], latencies = [];
 
   Object.entries(res.results).forEach(([modelId, data]) => {
     labels.push(modelId.split('/').pop());
-    latencies.push(data.latency_ms ? data.latency_ms.toFixed(0) : 0);
+    latencies.push(data.latency_ms ? parseFloat(data.latency_ms.toFixed(0)) : 0);
 
     const card = document.createElement('div');
     card.className = 'compare-card';
@@ -442,31 +441,31 @@ function renderCompareResults(res) {
       card.innerHTML = `
         <div class="compare-card-header">
           <span class="compare-card-model">${modelId.split('/').pop()}</span>
-          <span class="compare-card-latency">⏱ ${data.latency_ms?.toFixed(0) ?? '?'}ms</span>
+          <span class="compare-card-latency">${data.latency_ms?.toFixed(0) ?? '?'}ms</span>
         </div>
         <div class="compare-card-text">${escHtml(data.summary || '')}</div>
         <div class="compare-card-metrics">
-          <span class="compare-card-metric">📥 ${data.input_tokens} in</span>
-          <span class="compare-card-metric">📤 ${data.output_tokens} out</span>
-          <span class="compare-card-metric">🗜 ${data.compression_ratio?.toFixed(1) ?? '?'}×</span>
+          <span class="compare-card-metric">${data.input_tokens} in</span>
+          <span class="compare-card-metric">${data.output_tokens} out</span>
+          <span class="compare-card-metric">${data.compression_ratio?.toFixed(1) ?? '?'}x compression</span>
         </div>
       `;
     }
     cards.appendChild(card);
   });
 
-  document.getElementById('compareResults').classList.remove('hidden');
+  document.getElementById('compareResults').style.display = '';
   drawBarChart('compareChart', labels, latencies, 'Latency (ms)');
 }
 
 /* ═══════════════════ BATCH TAB ═══════════════════ */
 document.querySelectorAll('.mode-btn[data-batch-mode]').forEach(btn => {
   btn.addEventListener('click', () => {
-    const mode = btn.dataset.batchMode;
     document.querySelectorAll('.mode-btn[data-batch-mode]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('batchModeManual').classList.toggle('hidden', mode !== 'manual');
-    document.getElementById('batchModeCsv').classList.toggle('hidden', mode !== 'csv');
+    const mode = btn.dataset.batchMode;
+    document.getElementById('batchModeManual').style.display = mode === 'manual' ? '' : 'none';
+    document.getElementById('batchModeCsv').style.display    = mode === 'csv'    ? '' : 'none';
   });
 });
 
@@ -481,8 +480,8 @@ function parseBatchTexts(raw) {
 
 /* CSV upload */
 (function setupCsvDropzone() {
-  const zone  = document.getElementById('csvDropzone');
-  const input = document.getElementById('csvInput');
+  const zone   = document.getElementById('csvDropzone');
+  const input  = document.getElementById('csvInput');
   const status = document.getElementById('csvStatus');
 
   zone.addEventListener('click', () => input.click());
@@ -492,8 +491,7 @@ function parseBatchTexts(raw) {
   zone.addEventListener('drop', e => {
     e.preventDefault();
     zone.classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    if (f) parseCsv(f);
+    if (e.dataTransfer.files[0]) parseCsv(e.dataTransfer.files[0]);
   });
 
   function parseCsv(file) {
@@ -506,7 +504,7 @@ function parseBatchTexts(raw) {
       const rows = lines.slice(1).map(l => l.split(',')[textIdx]?.trim()).filter(Boolean);
       document.getElementById('batchInput').value = rows.join('\n---\n');
       document.getElementById('batchInput').dispatchEvent(new Event('input'));
-      status.textContent = `✅ ${rows.length} rows loaded from ${file.name}`;
+      status.textContent = `${rows.length} rows loaded from ${file.name}`;
     };
     reader.readAsText(file);
   }
@@ -514,48 +512,40 @@ function parseBatchTexts(raw) {
 
 document.getElementById('batchRunBtn').addEventListener('click', async () => {
   const texts = parseBatchTexts(document.getElementById('batchInput').value);
-  if (!texts.length) { toast('Add some texts first', 'error'); return; }
+  if (!texts.length) { toast('Add some texts first (separate with ---)', 'error'); return; }
 
   const modelId = document.getElementById('batchModelSelect').value;
   const btn = document.getElementById('batchRunBtn');
   btn.disabled = true;
 
-  const batchResults = document.getElementById('batchResults');
-  const progress     = document.getElementById('batchProgress');
-  const fill         = document.getElementById('batchProgressFill');
-  const label        = document.getElementById('batchProgressLabel');
-  const tbody        = document.getElementById('batchBody');
+  document.getElementById('batchResults').style.display = '';
+  document.getElementById('batchProgress').style.display = '';
+  document.getElementById('batchBody').innerHTML = '';
+  document.getElementById('batchResultsTitle').textContent = `Processing ${texts.length} texts...`;
 
-  batchResults.classList.remove('hidden');
-  progress.classList.remove('hidden');
-  tbody.innerHTML = '';
-  document.getElementById('batchResultsTitle').textContent = `Processing ${texts.length} texts…`;
-
-  let done = 0;
   try {
     const res = await API.batch(texts, modelId);
     res.results.forEach((r, i) => {
-      done++;
-      const pct = Math.round((done / texts.length) * 100);
-      fill.style.width = `${pct}%`;
-      label.textContent = `${done}/${texts.length} done`;
+      const pct = Math.round(((i + 1) / texts.length) * 100);
+      document.getElementById('batchProgressFill').style.width = `${pct}%`;
+      document.getElementById('batchProgressLabel').textContent = `${i + 1}/${texts.length} done`;
 
       const tr = document.createElement('tr');
       if (r.status === 'error') {
-        tr.innerHTML = `<td>${i+1}</td><td class="preview-cell">${escHtml(texts[i].slice(0,60))}</td><td colspan="3" style="color:var(--red)">${r.detail}</td><td>❌</td>`;
+        tr.innerHTML = `<td>${i+1}</td><td class="preview-cell">${escHtml(texts[i].slice(0,60))}</td><td colspan="2" style="color:var(--red)">${r.detail}</td><td>Failed</td>`;
       } else {
         tr.innerHTML = `
           <td>${i+1}</td>
-          <td class="preview-cell">${escHtml(texts[i].slice(0,60))}…</td>
-          <td class="preview-cell">${escHtml((r.summary||'').slice(0,80))}…</td>
-          <td>${r.compression_ratio?.toFixed(1) ?? '?'}×</td>
-          <td>✅</td>
+          <td class="preview-cell">${escHtml(texts[i].slice(0,60))}...</td>
+          <td class="preview-cell">${escHtml((r.summary||'').slice(0,80))}...</td>
+          <td>${r.compression_ratio?.toFixed(1) ?? '?'}x</td>
+          <td style="color:var(--green)">Done</td>
         `;
       }
-      tbody.appendChild(tr);
+      document.getElementById('batchBody').appendChild(tr);
     });
-    document.getElementById('batchResultsTitle').textContent = `${done} results · model: ${modelId.split('/').pop()}`;
-    progress.classList.add('hidden');
+    document.getElementById('batchResultsTitle').textContent = `${res.results.length} results — ${modelId.split('/').pop()}`;
+    document.getElementById('batchProgress').style.display = 'none';
   } catch (err) {
     toast(err.message, 'error');
   } finally {
@@ -563,7 +553,6 @@ document.getElementById('batchRunBtn').addEventListener('click', async () => {
   }
 });
 
-/* Download batch CSV */
 document.getElementById('batchDownloadBtn').addEventListener('click', () => {
   const rows = [...document.querySelectorAll('#batchBody tr')];
   if (!rows.length) return;
@@ -594,17 +583,16 @@ document.getElementById('evalRunBtn').addEventListener('click', async () => {
 
   const btn = document.getElementById('evalRunBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Computing…';
+  btn.textContent = 'Computing...';
 
   try {
-    // Local simple ROUGE-like metrics (actual ROUGE from backend optional)
     const metrics = computeLocalMetrics(ref, gen);
-    renderEvalResults(metrics, ref, gen);
+    renderEvalResults(metrics);
   } catch (err) {
     toast(err.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = '📊 Compute ROUGE Metrics';
+    btn.textContent = 'Compute ROUGE Metrics';
   }
 });
 
@@ -628,11 +616,9 @@ function computeLocalMetrics(ref, gen) {
   const rLp = rt.length ? lcs/rt.length : 0;
   const rLr = gt.length ? lcs/gt.length : 0;
   const rL  = (rLp + rLr) === 0 ? 0 : 2 * rLp * rLr / (rLp + rLr);
-
-  const refSents = ref.split(/[.!?]+/).filter(s=>s.trim().length>3);
+  const refSents = ref.split(/[.!?]+/).filter(s => s.trim().length > 3);
   const avgSentLen = refSents.length ? (ref.split(/\s+/).length / refSents.length).toFixed(1) : '—';
   const comp = (rt.length && gt.length) ? (rt.length / gt.length).toFixed(2) : '—';
-
   return { rouge1: r1, rouge2: r2, rougeL: rL, rougeLsum: rL, avgSentLen, compression: comp };
 }
 
@@ -645,9 +631,8 @@ function longestCommonSubseq(a, b) {
   return dp[m][n];
 }
 
-function renderEvalResults(m, ref, gen) {
-  const gaugesEl = document.getElementById('rougeGauges');
-  gaugesEl.innerHTML = ['rouge1','rouge2','rougeL'].map(key => {
+function renderEvalResults(m) {
+  document.getElementById('rougeGauges').innerHTML = ['rouge1','rouge2','rougeL'].map(key => {
     const val = (m[key]*100).toFixed(1);
     return `
       <div class="rouge-gauge">
@@ -656,16 +641,11 @@ function renderEvalResults(m, ref, gen) {
         <div class="rouge-gauge-bar"><div class="rouge-gauge-bar-fill" style="width:${val}%"></div></div>
       </div>`;
   }).join('');
-
-  document.getElementById('evalComp').textContent     = `${m.compression}×`;
+  document.getElementById('evalComp').textContent     = `${m.compression}x`;
   document.getElementById('evalSentLen').textContent  = m.avgSentLen;
   document.getElementById('evalRougeLsum').textContent = `${(m.rougeLsum*100).toFixed(1)}%`;
-
-  document.getElementById('evalResults').classList.remove('hidden');
-  drawRadarChart('evalRadar',
-    ['ROUGE-1','ROUGE-2','ROUGE-L'],
-    [m.rouge1, m.rouge2, m.rougeL]
-  );
+  document.getElementById('evalResults').style.display = '';
+  drawRadarChart('evalRadar', ['ROUGE-1','ROUGE-2','ROUGE-L'], [m.rouge1, m.rouge2, m.rougeL]);
 }
 
 /* ═══════════════════ AI AGENT TAB ═══════════════════ */
@@ -677,100 +657,84 @@ async function runAgent() {
 
   const btn = document.getElementById('agentRunBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Agent running…';
+  btn.textContent = 'Running...';
 
-  // Reset UI
-  const stepsEl  = document.getElementById('agentSteps');
-  const resultEl = document.getElementById('agentResult');
-  stepsEl.classList.remove('hidden');
-  resultEl.classList.add('hidden');
-  ['1','2','3','4'].forEach(n => {
-    setStepStatus(n, 'pending', '○', '');
-  });
+  document.getElementById('agentSteps').style.display = '';
+  document.getElementById('agentResult').style.display = 'none';
+  ['1','2','3','4'].forEach(n => setStepStatus(n, 'pending', '—', ''));
 
-  // Simulate step-by-step progress while waiting
-  setStepStatus('1', 'running', '⏳', 'Counting words, detecting domain…');
+  setStepStatus('1', 'running', '...', 'Counting words, detecting domain...');
   await delay(400);
-  setStepStatus('1', 'done', '✓', 'Text analyzed');
-  setStepStatus('2', 'running', '⏳', 'Scoring domain keywords…');
+  setStepStatus('1', 'done', 'Done', 'Text analyzed');
+  setStepStatus('2', 'running', '...', 'Scoring domain keywords...');
   await delay(300);
-  setStepStatus('2', 'done', '✓', 'Model selected');
-  setStepStatus('3', 'running', '⏳', 'Running inference…');
+  setStepStatus('2', 'done', 'Done', 'Model selected');
+  setStepStatus('3', 'running', '...', 'Running inference...');
 
   try {
     const result = await API.runAgent(text);
-
-    setStepStatus('3', 'done', '✓', `Done in ${result.total_latency_ms.toFixed(0)}ms`);
-    setStepStatus('4', 'running', '⏳', 'Computing ROUGE-L…');
+    setStepStatus('3', 'done', 'Done', `Completed in ${result.total_latency_ms.toFixed(0)}ms`);
+    setStepStatus('4', 'running', '...', 'Computing ROUGE-L...');
     await delay(200);
-    setStepStatus('4', 'done', '✓', `ROUGE-L: ${result.quality_score.toFixed(3)}`);
-
+    setStepStatus('4', 'done', 'Done', `ROUGE-L: ${result.quality_score.toFixed(3)}`);
     renderAgentResult(result);
   } catch (err) {
-    setStepStatus('3', 'error', '✗', err.message);
+    setStepStatus('3', 'error', 'Failed', err.message);
     toast(err.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = '🤖 Run Agent';
+    btn.textContent = 'Run Agent';
   }
 }
 
 function setStepStatus(n, cls, icon, detail) {
-  const statusEl = document.getElementById(`agentStep${n}Status`);
-  const detailEl = document.getElementById(`agentStep${n}Detail`);
-  const stepEl   = document.getElementById(`agentStep${n}`);
-  statusEl.className = `step-status ${cls}`;
-  statusEl.textContent = icon;
-  if (detail) detailEl.textContent = detail;
-  stepEl.className = `agent-step ${cls === 'running' ? 'active' : cls === 'done' ? 'done' : ''}`;
+  document.getElementById(`agentStep${n}Status`).className = `step-status ${cls}`;
+  document.getElementById(`agentStep${n}Status`).textContent = icon;
+  if (detail) document.getElementById(`agentStep${n}Detail`).textContent = detail;
+  const stepEl = document.getElementById(`agentStep${n}`);
+  stepEl.className = `agent-step${cls === 'running' ? ' active' : cls === 'done' ? ' done' : ''}`;
 }
 
 function renderAgentResult(res) {
-  const pct = Math.round(res.confidence * 100);
   const circumference = 2 * Math.PI * 34;
-  const offset = circumference * (1 - res.confidence);
-  document.getElementById('confidenceCircle').style.strokeDashoffset = offset;
-  document.getElementById('confidencePct').textContent = `${pct}%`;
+  document.getElementById('confidenceCircle').style.strokeDashoffset = circumference * (1 - res.confidence);
+  document.getElementById('confidencePct').textContent = `${Math.round(res.confidence * 100)}%`;
 
   document.getElementById('agentModelUsed').textContent = res.model_id.split('/').pop();
   document.getElementById('agentDomain').textContent    = res.analysis.domain || '—';
   document.getElementById('agentQuality').textContent   = res.quality_score.toFixed(3);
   document.getElementById('agentLatency').textContent   = `${res.total_latency_ms.toFixed(0)}ms`;
   document.getElementById('agentAttempts').textContent  = res.steps.length;
-
   document.getElementById('agentSummaryText').textContent = res.summary;
   lastSummary = res.summary;
 
-  const analysisEl = document.getElementById('agentAnalysis');
   const a = res.analysis;
-  const items = [
-    ['Word count',  a.word_count],
-    ['Sentences',   a.sentence_count],
-    ['Avg sent len', a.avg_sentence_length],
-    ['Complexity',  a.complexity],
-    ['Domain',      a.domain],
-    ['Max tokens',  a.max_length],
-  ];
-  analysisEl.innerHTML = items.map(([k, v]) => `
+  document.getElementById('agentAnalysis').innerHTML = [
+    ['Word count',     a.word_count],
+    ['Sentences',      a.sentence_count],
+    ['Avg sent length', a.avg_sentence_length],
+    ['Complexity',     a.complexity],
+    ['Domain',         a.domain],
+    ['Max tokens',     a.max_length],
+  ].map(([k, v]) => `
     <div class="analysis-item">
       <div class="analysis-key">${k}</div>
       <div class="analysis-val">${v}</div>
     </div>
   `).join('');
 
-  document.getElementById('agentResult').classList.remove('hidden');
+  document.getElementById('agentResult').style.display = '';
 }
 
-/* ═══════════════════ CHARTS (Canvas) ═══════════════════ */
+/* ═══════════════════ CHARTS ═══════════════════ */
 function drawBarChart(canvasId, labels, values, yLabel) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.offsetWidth || 600;
-  const H = canvas.height || 180;
+  const W = canvas.offsetWidth || 600, H = canvas.height || 180;
   canvas.width = W;
-
+  const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
+
   const max = Math.max(...values, 1);
   const pad = { top: 20, right: 20, bottom: 40, left: 50 };
   const chartW = W - pad.left - pad.right;
@@ -783,27 +747,18 @@ function drawBarChart(canvasId, labels, values, yLabel) {
   for (let i = 0; i <= 4; i++) {
     const y = pad.top + chartH - (chartH * i / 4);
     ctx.fillText(Math.round(max * i / 4), pad.left - 6, y + 4);
-    ctx.strokeStyle = '#30363d';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
   }
-
   labels.forEach((lbl, i) => {
     const x = pad.left + (chartW / labels.length) * i + (chartW / labels.length - barW) / 2;
     const barH = (values[i] / max) * chartH;
     const y = pad.top + chartH - barH;
-
     const grad = ctx.createLinearGradient(0, y, 0, y + barH);
-    grad.addColorStop(0, '#667eea');
-    grad.addColorStop(1, '#764ba2');
+    grad.addColorStop(0, '#667eea'); grad.addColorStop(1, '#764ba2');
     ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.roundRect(x, y, barW, barH, 4);
-    ctx.fill();
-
-    ctx.fillStyle = '#8b949e';
-    ctx.textAlign = 'center';
-    ctx.font = '10px Inter, sans-serif';
+    ctx.beginPath(); ctx.roundRect(x, y, barW, barH, 4); ctx.fill();
+    ctx.fillStyle = '#8b949e'; ctx.textAlign = 'center'; ctx.font = '10px Inter, sans-serif';
     ctx.fillText(lbl, x + barW / 2, H - pad.bottom + 14);
     ctx.fillStyle = '#e6edf3';
     ctx.fillText(values[i], x + barW / 2, y - 5);
@@ -813,70 +768,45 @@ function drawBarChart(canvasId, labels, values, yLabel) {
 function drawRadarChart(canvasId, labels, values) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const W = canvas.offsetWidth || 400;
-  const H = canvas.height || 260;
+  const W = canvas.offsetWidth || 400, H = canvas.height || 260;
   canvas.width = W;
-
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
 
-  const cx = W / 2, cy = H / 2;
-  const R = Math.min(cx, cy) - 40;
-  const n = labels.length;
+  const cx = W / 2, cy = H / 2, R = Math.min(cx, cy) - 40, n = labels.length;
   const angle = i => (Math.PI * 2 * i / n) - Math.PI / 2;
 
-  // Grid
   for (let ring = 1; ring <= 4; ring++) {
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
       const r = R * ring / 4;
-      const x = cx + r * Math.cos(angle(i));
-      const y = cy + r * Math.sin(angle(i));
+      const x = cx + r * Math.cos(angle(i)), y = cy + r * Math.sin(angle(i));
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
-    ctx.closePath();
-    ctx.strokeStyle = '#30363d';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    ctx.closePath(); ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1; ctx.stroke();
   }
-  // Spokes
   for (let i = 0; i < n; i++) {
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
+    ctx.beginPath(); ctx.moveTo(cx, cy);
     ctx.lineTo(cx + R * Math.cos(angle(i)), cy + R * Math.sin(angle(i)));
-    ctx.strokeStyle = '#30363d';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1; ctx.stroke();
   }
-  // Data polygon
   ctx.beginPath();
   values.forEach((v, i) => {
     const r = R * Math.min(v, 1);
-    const x = cx + r * Math.cos(angle(i));
-    const y = cy + r * Math.sin(angle(i));
+    const x = cx + r * Math.cos(angle(i)), y = cy + r * Math.sin(angle(i));
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   });
-  ctx.closePath();
-  ctx.fillStyle = 'rgba(102,126,234,0.2)';
-  ctx.fill();
-  ctx.strokeStyle = '#667eea';
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  ctx.closePath(); ctx.fillStyle = 'rgba(102,126,234,0.2)'; ctx.fill();
+  ctx.strokeStyle = '#667eea'; ctx.lineWidth = 2; ctx.stroke();
 
-  // Labels
-  ctx.fillStyle = '#8b949e';
-  ctx.font = '12px Inter, sans-serif';
   ctx.textAlign = 'center';
   labels.forEach((lbl, i) => {
     const r = R + 20;
-    const x = cx + r * Math.cos(angle(i));
-    const y = cy + r * Math.sin(angle(i));
+    const x = cx + r * Math.cos(angle(i)), y = cy + r * Math.sin(angle(i));
+    ctx.fillStyle = '#8b949e'; ctx.font = '12px Inter, sans-serif';
     ctx.fillText(lbl, x, y + 4);
-    ctx.fillStyle = '#e6edf3';
-    ctx.font = 'bold 11px Inter, sans-serif';
+    ctx.fillStyle = '#e6edf3'; ctx.font = 'bold 11px Inter, sans-serif';
     ctx.fillText(`${(values[i]*100).toFixed(0)}%`, x, y + 18);
-    ctx.fillStyle = '#8b949e';
-    ctx.font = '12px Inter, sans-serif';
   });
 }
 
@@ -887,6 +817,5 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 (async () => {
   renderHistory();
   await Promise.all([checkHealth(), loadModels()]);
-  // Re-check health every 30s
   setInterval(checkHealth, 30_000);
 })();
