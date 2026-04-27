@@ -1,7 +1,4 @@
-/* ═══════════════════════════════════════════════
-   API communication layer — all fetch/SSE calls
-   ═══════════════════════════════════════════════ */
-
+/* API communication layer */
 const BASE = '/api/v1';
 
 async function _post(path, body) {
@@ -18,40 +15,24 @@ async function _post(path, body) {
 }
 
 const API = {
-  /* ── Health ─────────────────────────────────────────── */
   async health() {
-    const res = await fetch(`${BASE}/health`);
-    if (!res.ok) throw new Error('Offline');
-    return res.json();
+    const r = await fetch(`${BASE}/health`);
+    if (!r.ok) throw new Error('Offline');
+    return r.json();
   },
 
-  /* ── Models ─────────────────────────────────────────── */
-  async models() {
-    const res = await fetch(`${BASE}/models`);
-    if (!res.ok) throw new Error('Failed to fetch models');
-    return res.json();
-  },
-
-  /* ── Summarize: text ────────────────────────────────── */
   async summarize(payload) {
     return _post('/summarize', payload);
   },
 
-  /* ── Summarize: URL ─────────────────────────────────── */
-  async summarizeUrl(url, modelId, maxLength = 256, minLength = 50) {
-    return _post('/summarize/url', {
-      url,
-      model_id: modelId,
-      max_length: maxLength,
-      min_length: minLength,
-    });
+  async summarizeUrl(url, maxLength = 350, minLength = 50) {
+    return _post('/summarize/url', { url, max_length: maxLength, min_length: minLength });
   },
 
-  /* ── Summarize: PDF (multipart) ─────────────────────── */
-  async summarizePdf(file, modelId, maxLength = 256, minLength = 50) {
+  async summarizePdf(file, maxLength = 350, minLength = 50) {
     const fd = new FormData();
     fd.append('file', file);
-    const params = new URLSearchParams({ model_id: modelId, max_length: maxLength, min_length: minLength });
+    const params = new URLSearchParams({ max_length: maxLength, min_length: minLength });
     const res = await fetch(`${BASE}/summarize/pdf?${params}`, { method: 'POST', body: fd });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }));
@@ -60,65 +41,44 @@ const API = {
     return res.json();
   },
 
-  /* ── Summarize: streaming SSE ───────────────────────── */
   streamSummarize(payload, onToken, onDone, onError) {
     fetch(`${BASE}/summarize/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    }).then(async (res) => {
+    }).then(async res => {
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }));
-        onError(new Error(err.detail || `HTTP ${res.status}`));
-        return;
+        onError(new Error(err.detail || `HTTP ${res.status}`)); return;
       }
       const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+      const dec = new TextDecoder();
+      let buf = '';
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop();
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n'); buf = lines.pop();
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           const data = line.slice(6);
           if (data === '[DONE]') { onDone(); return; }
           if (data.startsWith('[ERROR]')) { onError(new Error(data.slice(8))); return; }
-          onToken(data);
+          if (data.trim()) onToken(data);
         }
       }
       onDone();
     }).catch(onError);
   },
 
-  /* ── Compare ────────────────────────────────────────── */
-  async compare(text, modelIds, maxLength = 256, minLength = 50) {
-    return _post('/compare', {
-      text,
-      model_ids: modelIds,
-      max_length: maxLength,
-      min_length: minLength,
-    });
+  async compare(text) {
+    return _post('/compare', { text, max_length: 400, min_length: 30 });
   },
 
-  /* ── Batch ──────────────────────────────────────────── */
-  async batch(texts, modelId, maxLength = 256, minLength = 50) {
-    return _post('/summarize/batch', {
-      texts,
-      model_id: modelId,
-      max_length: maxLength,
-      min_length: minLength,
-    });
+  async batch(texts) {
+    return _post('/summarize/batch', { texts, max_length: 350, min_length: 50 });
   },
 
-  /* ── Evaluate (ROUGE) ───────────────────────────────── */
-  async evaluate(reference, generated) {
-    return _post('/evaluate', { reference, generated });
-  },
-
-  /* ── AI Agent ───────────────────────────────────────── */
   async runAgent(text) {
     return _post('/agent/run', { text });
   },

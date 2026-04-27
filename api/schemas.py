@@ -1,14 +1,16 @@
 from typing import Any, Optional
 from pydantic import BaseModel, Field
 
+_MODEL = "llama3.1:8b"
+
 
 class SummarizeRequest(BaseModel):
-    text: str = Field(..., min_length=50)
-    model_id: str = Field("sshleifer/distilbart-cnn-12-6")
-    max_length: int = Field(256, ge=50, le=512)
+    text: str = Field(..., min_length=20)
+    model_id: str = Field(_MODEL)
+    max_length: int = Field(350, ge=50, le=600)
     min_length: int = Field(50, ge=10, le=200)
-    num_beams: int = Field(4, ge=1, le=8)
-    length_penalty: float = Field(2.0, ge=0.5, le=5.0)
+    num_beams: int = Field(1, ge=1, le=8)
+    length_penalty: float = Field(1.0, ge=0.5, le=5.0)
 
 
 class SummarizeResponse(BaseModel):
@@ -22,29 +24,27 @@ class SummarizeResponse(BaseModel):
 
 class URLRequest(BaseModel):
     url: str
-    model_id: str = "sshleifer/distilbart-cnn-12-6"
-    max_length: int = 256
+    model_id: str = _MODEL
+    max_length: int = 350
     min_length: int = 50
 
 
 class BatchRequest(BaseModel):
     texts: list[str] = Field(..., min_length=1, max_length=20)
-    model_id: str = "sshleifer/distilbart-cnn-12-6"
-    max_length: int = 256
+    model_id: str = _MODEL
+    max_length: int = 350
     min_length: int = 50
 
 
 class CompareRequest(BaseModel):
-    text: str = Field(..., min_length=50)
-    model_ids: list[str] = Field(
-        default=["sshleifer/distilbart-cnn-12-6", "facebook/bart-large-cnn"]
-    )
-    max_length: int = 256
+    text: str = Field(..., min_length=20)
+    model_ids: list[str] = Field(default=[_MODEL])
+    max_length: int = 350
     min_length: int = 50
 
 
 class AgentRequest(BaseModel):
-    text: str = Field(..., min_length=50, description="Text for the AI agent to summarize")
+    text: str = Field(..., min_length=20, description="Text for the AI agent to summarize")
 
 
 class AgentResponse(BaseModel):

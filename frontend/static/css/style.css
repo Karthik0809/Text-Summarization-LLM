@@ -1315,3 +1315,68 @@ textarea:focus { border-color: var(--accent); }
 
 /* ═══════════════════ MISC UTILITIES ═══════════════════ */
 .hidden { display: none; }
+.mode-hidden { display: none !important; }
+
+/* Input mode: show only active-mode */
+.input-mode { display: none; }
+.input-mode.active-mode { display: block; }
+
+/* Model info strip (replaces model grid) */
+.model-info-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+.model-info-badge {
+  font-size: .72rem;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid rgba(102,126,234,.35);
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.model-info-desc { font-size: .78rem; color: var(--text-muted); line-height: 1.4; }
+
+/* Output panel body (wraps all three states) */
+.output-body { flex: 1; display: flex; flex-direction: column; }
+
+/* Output actions hidden until result appears */
+.output-actions { display: flex; align-items: center; gap: 6px; position: relative; }
+.output-actions-hidden { display: none !important; }
+
+/* Export menu open state */
+.export-menu { display: none; }
+.export-menu.export-menu-open { display: block; }
+
+/* Compare desc */
+.compare-desc {
+  font-size: .82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+.compare-results { margin-top: 20px; display: flex; flex-direction: column; gap: 16px; }
+.chart-label { font-size: .78rem; color: var(--text-muted); text-align: center; margin-bottom: 8px; }
+
+/* Use last summary button */
+.use-last-btn { margin-top: 6px; }
+
+/* History section hidden until there's data */
+.history-section { display: none; }
+.history-section:not(.mode-hidden) { display: block; }
+
+/* Batch progress hide when done */
+.batch-progress-wrap { padding: 10px 18px; border-bottom: 1px solid var(--border); }
+
+/* PDF/URL status */
+.pdf-status { margin-top: 8px; font-size: .8rem; color: var(--text-secondary); }
