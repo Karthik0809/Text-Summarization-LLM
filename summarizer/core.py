@@ -37,16 +37,18 @@ _DOMAIN_HINTS: dict[str, str] = {
 }
 
 _PROMPT_DETAILED = """\
-Summarize the following text. Cover all key points, arguments, findings, and conclusions. \
-Preserve every named entity, number, and fact exactly as stated. \
-Write in clear professional prose. Output ONLY the summary — no preamble.
+Summarize the following text in approximately {target_words} words (about {pct}% of the original). \
+Capture the key ideas, important facts, and conclusions. \
+Do NOT pad or repeat — be concise and direct. \
+Write in clear professional prose. Output ONLY the summary — no preamble or labels.
 {hint}
 Text:
 {text}"""
 
 _PROMPT_BRIEF = """\
-Summarize the following text in 2-4 concise sentences. \
-Keep every critical fact. Output ONLY the summary — no preamble.
+Summarize the following text in 2-3 sentences (under 60 words). \
+Keep only the single most important point and one or two supporting facts. \
+Output ONLY the summary — no preamble or labels.
 
 Text:
 {text}"""
@@ -84,13 +86,22 @@ class SummarizationEngine:
     def loaded_models(cls) -> list[str]:
         return [DEFAULT_MODEL]
 
-    def _messages(self, text: str, domain: str = "general", style: str = "detailed") -> list[dict]:
+    def _messages(self, text: str, domain: str = "general", style: str = "detailed",
+                  max_length: int = 400, min_length: int = 50) -> list[dict]:
         hint = _DOMAIN_HINTS.get(domain, "")
+        input_words = len(text.split())
         if style == "brief":
             content = _PROMPT_BRIEF.format(text=text[:8000])
         else:
+            # Target 25-35% of input length, clamped to [min_length, max_length]
+            raw_target = max(int(input_words * 0.30), min_length)
+            target_words = min(raw_target, max_length)
+            pct = round(target_words / max(input_words, 1) * 100)
             hint_line = f"\nDomain hint: {hint}\n" if hint else ""
-            content = _PROMPT_DETAILED.format(hint=hint_line, text=text[:8000])
+            content = _PROMPT_DETAILED.format(
+                target_words=target_words, pct=pct,
+                hint=hint_line, text=text[:8000]
+            )
         return [
             {"role": "system", "content": _SYSTEM},
             {"role": "user",   "content": content},
@@ -106,11 +117,17 @@ class SummarizationEngine:
         **_,
     ) -> SummaryResult:
         t0 = time.perf_counter()
-        max_tokens = 150 if style == "brief" else min(max_length * 2, 900)
+        if style == "brief":
+            max_tokens = 100
+        else:
+            input_words = len(text.split())
+            target = min(max(int(input_words * 0.30), min_length), max_length)
+            max_tokens = min(target * 2, 600)  # ~1.5 tokens/word headroom
         try:
             resp = self.client.chat.completions.create(
                 model=self.model_id,
-                messages=self._messages(text, domain=domain, style=style),
+                messages=self._messages(text, domain=domain, style=style,
+                                        max_length=max_length, min_length=min_length),
                 temperature=0.1,
                 max_tokens=max_tokens,
             )
@@ -130,12 +147,16 @@ class SummarizationEngine:
         )
 
     def stream(self, text: str, max_length: int = 400, domain: str = "general", **_) -> Iterator[str]:
+        input_words = len(text.split())
+        target = min(max(int(input_words * 0.30), 50), max_length)
+        max_tokens = min(target * 2, 600)
         try:
             s = self.client.chat.completions.create(
                 model=self.model_id,
-                messages=self._messages(text, domain=domain, style="detailed"),
+                messages=self._messages(text, domain=domain, style="detailed",
+                                        max_length=max_length),
                 temperature=0.1,
-                max_tokens=min(max_length * 2, 900),
+                max_tokens=max_tokens,
                 stream=True,
             )
             for chunk in s:
