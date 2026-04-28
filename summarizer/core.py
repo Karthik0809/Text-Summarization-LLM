@@ -24,9 +24,9 @@ MODELS: dict[str, dict] = {
 
 _SYSTEM = (
     "You are an expert summarization assistant. "
-    "You produce summaries that are accurate, complete, and faithful to the source. "
-    "You never omit specific names, tools, techniques, numbers, or causal relationships. "
-    "You condense by removing filler and repetition only — never by generalizing away specifics."
+    "Your only job is to compress text while keeping every distinct fact intact. "
+    "You condense by removing filler, redundancy, and transitional padding only. "
+    "You never generalize, merge separate facts, drop context, or paraphrase away specifics."
 )
 
 _DOMAIN_HINTS: dict[str, str] = {
@@ -39,27 +39,40 @@ _DOMAIN_HINTS: dict[str, str] = {
 }
 
 _PROMPT_DETAILED = """\
-Summarize the following text in approximately {target_words} words.
+Read the text below carefully, then write a summary of approximately {target_words} words.
 
-Rules:
-- Preserve ALL named entities: people, organizations, product names, tool names, CVEs, \
-malware names, URLs, version numbers, and proper nouns exactly as written.
-- Preserve ALL technical details: attack vectors, mechanisms, protocols, methods, \
-and how/why things work.
-- Preserve ALL causal relationships: what caused what, why something was chosen, \
-what the effect was.
-- Preserve ALL numbers, dates, statistics, and figures exactly.
-- Remove ONLY: filler phrases, repeated information, and transitional padding.
-- Do NOT generalize specifics into vague descriptions.
+You MUST follow every rule below without exception:
+
+WHAT TO KEEP — include ALL of the following:
+1. Every distinct fact, event, and claim — if the source states it, the summary must state it.
+2. All named entities exactly as written: people, organizations, places, product names, \
+tool names, law names, bill names, event names, proper nouns.
+3. All numbers, dates, statistics, percentages, dollar amounts, and figures.
+4. All causal relationships and explanations — WHY something happened or was decided \
+is as important as WHAT happened.
+5. All quoted statements — preserve the speaker's name, the date of the quote if given, \
+the tense, and the exact meaning. Do not rephrase quotes in a way that changes meaning or timing.
+6. All background context that explains the significance of an event \
+(e.g. "first time since X", "breaking from usual practice", historical comparisons).
+7. When the source makes two separate points, keep them as two separate points — \
+do NOT collapse them into one.
+
+WHAT TO REMOVE — remove ONLY:
+- Filler phrases and transitional sentences that add no information.
+- Direct repetition of the same fact already stated.
+
+FORMAT:
 - Write in clear, flowing professional prose.
-- Output ONLY the summary — no preamble, no labels, no bullet points.
+- No bullet points, no headers, no preamble, no labels.
+- Output ONLY the summary.
 {hint}
 Text:
 {text}"""
 
 _PROMPT_BRIEF = """\
-Summarize the following text in 2-4 sentences. \
-Include the most critical facts, the main named entities, and the key outcome. \
+Summarize the following text in 3-4 sentences. \
+Include: the main event, the key people/organizations involved, the most important outcome, \
+and the primary reason or cause. \
 Output ONLY the summary — no preamble or labels.
 
 Text:
