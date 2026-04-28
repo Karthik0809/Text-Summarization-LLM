@@ -1,64 +1,55 @@
-"""Ollama-based summarization engine — llama3.1:8b, domain-aware prompting."""
+"""Groq-backed summarization engine — llama-3.3-70b-versatile."""
 from __future__ import annotations
 
-import json
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Iterator
 
-import httpx
+from groq import Groq
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_BASE  = "http://localhost:11434"
-DEFAULT_MODEL = "llama3.1:8b"
+DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
 MODELS: dict[str, dict] = {
     DEFAULT_MODEL: {
-        "name":  "Llama 3.1 8B",
+        "name":  "Llama 3.3 70B",
         "badge": "Best",
-        "desc":  "Meta Llama 3.1 — instruction-tuned, highly accurate summarization.",
-        "size":  "4.7 GB",
+        "desc":  "Meta Llama 3.3 70B via Groq — ultra-fast, high accuracy summarization.",
+        "size":  "API",
     }
 }
 
-_PROMPT_DETAILED = """\
-You are a professional summarization expert. Read the text below and write a clear, \
-accurate, comprehensive summary.
-
-Rules:
-- Capture every key point, finding, argument, and conclusion
-- Preserve all named entities, numbers, and facts exactly
-- Write in clear professional prose, use paragraphs if needed
-- Output ONLY the summary — no preamble, no "This text discusses…"
-
-{domain_hint}Text:
-{text}
-
-Summary:"""
-
-_PROMPT_BRIEF = """\
-You are a professional summarization expert. Write a short, accurate summary of the text below.
-
-Rules:
-- 2-4 sentences maximum
-- Keep every critical fact and number
-- Output ONLY the summary — no preamble
-
-{domain_hint}Text:
-{text}
-
-Brief Summary:"""
+_SYSTEM = (
+    "You are a professional summarization expert. "
+    "Your summaries are accurate, comprehensive, and clearly written."
+)
 
 _DOMAIN_HINTS: dict[str, str] = {
-    "scientific": "Domain focus: hypothesis, methodology, findings, conclusions.\n",
-    "technical":  "Domain focus: system design, architecture, key implementation details.\n",
-    "news":       "Domain focus: who, what, when, where, why, how. Lead with main event.\n",
-    "finance":    "Domain focus: revenue figures, key metrics, strategic moves, outlook.\n",
-    "dialogue":   "Domain focus: participants, decisions, action items, consensus reached.\n",
+    "scientific": "Focus on: hypothesis, methodology, key findings, and conclusions.",
+    "technical":  "Focus on: architecture, design decisions, and implementation details.",
+    "news":       "Lead with the main event. Cover who, what, when, where, why.",
+    "finance":    "Preserve all figures, metrics, and strategic decisions exactly.",
+    "dialogue":   "Capture participants, decisions made, and action items.",
     "general":    "",
 }
+
+_PROMPT_DETAILED = """\
+Summarize the following text. Cover all key points, arguments, findings, and conclusions. \
+Preserve every named entity, number, and fact exactly as stated. \
+Write in clear professional prose. Output ONLY the summary — no preamble.
+{hint}
+Text:
+{text}"""
+
+_PROMPT_BRIEF = """\
+Summarize the following text in 2-4 concise sentences. \
+Keep every critical fact. Output ONLY the summary — no preamble.
+
+Text:
+{text}"""
 
 
 @dataclass
@@ -73,78 +64,59 @@ class SummaryResult:
 
 
 class SummarizationEngine:
-    """Ollama-backed engine. One model, domain-aware prompting."""
-
     _instance: "SummarizationEngine | None" = None
 
-    def __init__(self, model_id: str = DEFAULT_MODEL):
-        self.model_id = model_id
-        try:
-            httpx.get(f"{OLLAMA_BASE}/api/tags", timeout=5).raise_for_status()
-            logger.info("Ollama OK — model: %s", self.model_id)
-        except Exception as exc:
-            logger.warning("Ollama unreachable (%s). Run: ollama serve && ollama pull %s", exc, self.model_id)
+    def __init__(self):
+        api_key = os.environ.get("GROQ_API_KEY", "")
+        if not api_key:
+            raise RuntimeError("GROQ_API_KEY not set. Add it to your .env file.")
+        self.client = Groq(api_key=api_key)
+        self.model_id = DEFAULT_MODEL
+        logger.info("Groq engine ready — %s", self.model_id)
 
     @classmethod
-    def get_or_create(cls, model_id: str = DEFAULT_MODEL, **_) -> "SummarizationEngine":
+    def get_or_create(cls, *_, **__) -> "SummarizationEngine":
         if cls._instance is None:
-            cls._instance = cls(model_id)
+            cls._instance = cls()
         return cls._instance
 
     @classmethod
     def loaded_models(cls) -> list[str]:
-        try:
-            r = httpx.get(f"{OLLAMA_BASE}/api/tags", timeout=5)
-            r.raise_for_status()
-            return [m["name"] for m in r.json().get("models", [])]
-        except Exception:
-            return []
+        return [DEFAULT_MODEL]
 
-    def _build_prompt(self, text: str, domain: str = "general", style: str = "detailed") -> str:
+    def _messages(self, text: str, domain: str = "general", style: str = "detailed") -> list[dict]:
         hint = _DOMAIN_HINTS.get(domain, "")
-        template = _PROMPT_BRIEF if style == "brief" else _PROMPT_DETAILED
-        return template.format(domain_hint=hint, text=text[:6000])
+        if style == "brief":
+            content = _PROMPT_BRIEF.format(text=text[:8000])
+        else:
+            hint_line = f"\nDomain hint: {hint}\n" if hint else ""
+            content = _PROMPT_DETAILED.format(hint=hint_line, text=text[:8000])
+        return [
+            {"role": "system", "content": _SYSTEM},
+            {"role": "user",   "content": content},
+        ]
 
     def summarize(
         self,
         text: str,
-        max_length: int = 350,
+        max_length: int = 400,
         min_length: int = 50,
         domain: str = "general",
         style: str = "detailed",
         **_,
     ) -> SummaryResult:
         t0 = time.perf_counter()
-        prompt = self._build_prompt(text, domain=domain, style=style)
-        num_predict = 120 if style == "brief" else max(max_length * 2, 500)
-
+        max_tokens = 150 if style == "brief" else min(max_length * 2, 900)
         try:
-            resp = httpx.post(
-                f"{OLLAMA_BASE}/api/generate",
-                json={
-                    "model": self.model_id,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.15,
-                        "num_predict": num_predict,
-                        "top_p": 0.9,
-                        "repeat_penalty": 1.15,
-                        "stop": ["\n\n\n\n"],
-                    },
-                },
-                timeout=180.0,
+            resp = self.client.chat.completions.create(
+                model=self.model_id,
+                messages=self._messages(text, domain=domain, style=style),
+                temperature=0.1,
+                max_tokens=max_tokens,
             )
-            resp.raise_for_status()
-            summary = resp.json().get("response", "").strip()
-        except httpx.TimeoutException:
-            raise RuntimeError("Ollama timed out. Is `ollama serve` running?")
-        except httpx.ConnectError:
-            raise RuntimeError(
-                "Cannot connect to Ollama. Run: ollama serve   then: ollama pull llama3.1:8b"
-            )
+            summary = resp.choices[0].message.content.strip()
         except Exception as exc:
-            raise RuntimeError(f"Ollama error: {exc}") from exc
+            raise RuntimeError(f"Groq error: {exc}") from exc
 
         input_w  = len(text.split())
         output_w = len(summary.split())
@@ -157,43 +129,18 @@ class SummarizationEngine:
             latency_ms=round((time.perf_counter() - t0) * 1000, 1),
         )
 
-    def stream(
-        self,
-        text: str,
-        max_length: int = 350,
-        domain: str = "general",
-        **_,
-    ) -> Iterator[str]:
-        """Yield raw token chunks from Ollama streaming API."""
-        prompt = self._build_prompt(text, domain=domain, style="detailed")
+    def stream(self, text: str, max_length: int = 400, domain: str = "general", **_) -> Iterator[str]:
         try:
-            with httpx.stream(
-                "POST",
-                f"{OLLAMA_BASE}/api/generate",
-                json={
-                    "model": self.model_id,
-                    "prompt": prompt,
-                    "stream": True,
-                    "options": {
-                        "temperature": 0.15,
-                        "num_predict": max(max_length * 2, 500),
-                        "top_p": 0.9,
-                        "repeat_penalty": 1.15,
-                    },
-                },
-                timeout=180.0,
-            ) as resp:
-                for line in resp.iter_lines():
-                    if not line:
-                        continue
-                    try:
-                        chunk = json.loads(line)
-                        token = chunk.get("response", "")
-                        if token:
-                            yield token
-                        if chunk.get("done"):
-                            break
-                    except json.JSONDecodeError:
-                        continue
-        except httpx.ConnectError as exc:
-            raise RuntimeError("Cannot connect to Ollama. Run: ollama serve") from exc
+            s = self.client.chat.completions.create(
+                model=self.model_id,
+                messages=self._messages(text, domain=domain, style="detailed"),
+                temperature=0.1,
+                max_tokens=min(max_length * 2, 900),
+                stream=True,
+            )
+            for chunk in s:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    yield delta
+        except Exception as exc:
+            raise RuntimeError(f"Groq stream error: {exc}") from exc
