@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Text Summarizer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
@@ -13,10 +13,13 @@
 <!-- HEADER -->
 <header class="app-header">
   <div class="header-left">
-    <div class="logo-mark">AI</div>
-    <div>
-      <div class="logo-text">Advanced Text Summarizer</div>
-      <div class="logo-sub">Llama 3.3 70B · Domain-aware · AI Agent</div>
+    <div class="logo-mark">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" fill-opacity=".9"/><path d="M2 17l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".7"/><path d="M2 12l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".85"/></svg>
+    </div>
+    <div class="logo-info">
+      <span class="logo-text">SummarizeAI</span>
+      <span class="logo-sep"></span>
+      <span class="logo-model">Llama 3.3 70B</span>
     </div>
   </div>
   <div class="header-right">
@@ -24,59 +27,97 @@
       <span class="status-dot"></span>
       <span id="statusText">Connecting...</span>
     </div>
-    <a href="/api/docs" target="_blank" class="btn-ghost btn-sm">API Docs</a>
+    <a href="/api/docs" target="_blank" class="header-link">API Docs</a>
   </div>
 </header>
 
 <!-- TABS -->
 <nav class="tab-nav">
-  <button class="tab-btn active" data-tab="summarize">Summarize</button>
-  <button class="tab-btn" data-tab="compare">Compare</button>
-  <button class="tab-btn" data-tab="batch">Batch</button>
-  <button class="tab-btn" data-tab="evaluate">Evaluate</button>
-  <button class="tab-btn agent-tab" data-tab="agent">AI Agent</button>
+  <button class="tab-btn active" data-tab="summarize">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Summarize
+  </button>
+  <button class="tab-btn" data-tab="compare">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18"/><rect x="14" y="3" width="7" height="18"/></svg>
+    Compare
+  </button>
+  <button class="tab-btn" data-tab="batch">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    Batch
+  </button>
+  <button class="tab-btn" data-tab="evaluate">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Evaluate
+  </button>
+  <button class="tab-btn" data-tab="agent">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    AI Agent
+    <span class="tab-badge">NEW</span>
+  </button>
 </nav>
 
-<!-- TAB: SUMMARIZE -->
+<!-- ═══════════════════ TAB: SUMMARIZE ═══════════════════ -->
 <main class="tab-pane active" id="tab-summarize">
-  <div class="split-panel">
+  <div class="summarize-layout">
 
-    <!-- Left: Input -->
-    <div class="panel" id="inputPanel">
-      <div class="panel-header">
-        <h2 class="panel-title">Input</h2>
-        <div class="mode-tabs">
-          <button class="mode-btn active" data-mode="text">Text</button>
-          <button class="mode-btn" data-mode="url">URL</button>
-          <button class="mode-btn" data-mode="pdf">PDF</button>
+    <!-- LEFT: INPUT -->
+    <div class="input-card">
+      <div class="card-header">
+        <div class="card-title-row">
+          <h2 class="card-title">Input</h2>
+          <div class="mode-seg" id="inputModeSeg">
+            <button class="seg-btn active" data-mode="text">Text</button>
+            <button class="seg-btn" data-mode="url">URL</button>
+            <button class="seg-btn" data-mode="pdf">PDF</button>
+          </div>
         </div>
       </div>
 
-      <!-- Model info strip (single model, no selection) -->
-      <div class="model-info-strip">
-        <span class="model-info-badge">Llama 3.3 70B</span>
-        <span class="model-info-desc">Meta's best open model — domain-aware prompting for high accuracy</span>
+      <!-- Domain selector -->
+      <div class="domain-row">
+        <span class="row-label">Domain</span>
+        <div class="domain-pills">
+          <button class="domain-pill active" data-domain="general">General</button>
+          <button class="domain-pill" data-domain="news">News</button>
+          <button class="domain-pill" data-domain="scientific">Scientific</button>
+          <button class="domain-pill" data-domain="technical">Technical</button>
+          <button class="domain-pill" data-domain="finance">Finance</button>
+          <button class="domain-pill" data-domain="dialogue">Dialogue</button>
+        </div>
       </div>
 
-      <!-- Advanced params (collapsible) -->
-      <details class="params-details">
-        <summary>Generation Parameters</summary>
-        <div class="params-grid">
-          <div class="param-row">
-            <label>Max tokens <span id="maxLenVal">350</span></label>
-            <input type="range" id="maxLen" min="80" max="600" value="350" step="10" />
-          </div>
-          <div class="param-row">
-            <label>Min tokens <span id="minLenVal">50</span></label>
-            <input type="range" id="minLen" min="20" max="200" value="50" step="5" />
-          </div>
+      <!-- Style selector -->
+      <div class="style-row">
+        <span class="row-label">Style</span>
+        <div class="style-seg">
+          <button class="style-btn active" data-style="detailed">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Detailed
+          </button>
+          <button class="style-btn" data-style="brief">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/></svg>
+            Brief
+          </button>
         </div>
-      </details>
+        <details class="params-inline">
+          <summary>Advanced</summary>
+          <div class="params-body">
+            <div class="param-row">
+              <label>Max tokens <span id="maxLenVal">350</span></label>
+              <input type="range" id="maxLen" min="80" max="600" value="350" step="10" />
+            </div>
+            <div class="param-row">
+              <label>Min tokens <span id="minLenVal">50</span></label>
+              <input type="range" id="minLen" min="20" max="200" value="50" step="5" />
+            </div>
+          </div>
+        </details>
+      </div>
 
-      <!-- Text mode -->
+      <!-- TEXT MODE -->
       <div class="input-mode active-mode" id="mode-text">
         <div class="sample-row">
-          <label class="field-label">Sample</label>
+          <span class="row-label">Sample</span>
           <select id="sampleSelect">
             <option value="">— paste your own —</option>
             <option value="climate">Climate Science</option>
@@ -84,43 +125,51 @@
             <option value="cloud">Cloud &amp; DevOps</option>
           </select>
         </div>
-        <textarea id="inputText" placeholder="Paste any article, research paper, report, or news here..." rows="12"></textarea>
-        <div class="word-count-row">
-          <span id="wordCount" class="word-count">0 words</span>
-          <span class="word-hint">100–2000 words gives best results</span>
+        <div class="textarea-wrap">
+          <textarea id="inputText" placeholder="Paste any article, research paper, report, or news here..." rows="11"></textarea>
+          <div class="textarea-footer">
+            <span id="wordCount" class="word-count">0 words</span>
+            <span class="word-hint">100–2000 words optimal</span>
+          </div>
         </div>
       </div>
 
-      <!-- URL mode -->
+      <!-- URL MODE -->
       <div class="input-mode" id="mode-url">
         <label class="field-label">Article URL</label>
-        <div class="url-row">
+        <div class="url-input-row">
           <input type="url" id="urlInput" placeholder="https://example.com/article" />
-          <button class="btn-secondary" id="fetchUrlBtn">Fetch &amp; Summarize</button>
+          <button class="btn-fetch" id="fetchUrlBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+            Fetch
+          </button>
         </div>
-        <div id="urlStatus" class="url-status"></div>
-        <div id="urlPreview" class="url-preview">
+        <div id="urlStatus" class="status-msg"></div>
+        <div id="urlPreview" class="url-preview mode-hidden">
           <div class="url-preview-title" id="urlPreviewTitle"></div>
           <div class="url-preview-text" id="urlPreviewText"></div>
         </div>
       </div>
 
-      <!-- PDF mode -->
+      <!-- PDF MODE -->
       <div class="input-mode" id="mode-pdf">
         <div class="dropzone" id="pdfDropzone">
-          <div class="dropzone-icon-wrap">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <div class="dz-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
           </div>
-          <div class="dropzone-text">Drop PDF here or <span class="link">click to browse</span></div>
-          <div class="dropzone-hint">Text-based PDFs only</div>
+          <p class="dz-title">Drop PDF here or <span class="dz-link">browse</span></p>
+          <p class="dz-hint">Text-based PDFs only</p>
           <input type="file" id="pdfInput" accept=".pdf" hidden />
         </div>
-        <div id="pdfStatus" class="pdf-status"></div>
+        <div id="pdfStatus" class="status-msg mode-hidden"></div>
       </div>
 
-      <!-- Generate button -->
+      <!-- GENERATE -->
       <div class="generate-row">
-        <button class="btn-primary btn-generate" id="generateBtn">Generate Summary</button>
+        <button class="btn-generate" id="generateBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Generate Summary
+        </button>
         <label class="toggle-wrap">
           <input type="checkbox" id="streamToggle" />
           <span class="toggle-track"></span>
@@ -129,17 +178,17 @@
       </div>
     </div>
 
-    <!-- Right: Output -->
-    <div class="panel" id="outputPanel">
-      <div class="panel-header">
-        <h2 class="panel-title">Summary</h2>
-        <div class="output-actions" id="outputActions">
-          <button class="btn-icon-sm" id="copyBtn" title="Copy">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+    <!-- RIGHT: OUTPUT -->
+    <div class="output-card" id="outputPanel">
+      <div class="card-header">
+        <h2 class="card-title">Summary</h2>
+        <div class="output-actions output-actions-hidden" id="outputActions">
+          <button class="icon-btn" id="copyBtn" title="Copy to clipboard">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           </button>
           <div class="export-wrap">
-            <button class="btn-icon-sm" id="exportBtn" title="Export">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <button class="icon-btn" id="exportBtn" title="Export">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </button>
             <div class="export-menu" id="exportMenu">
               <button data-fmt="txt">Plain Text (.txt)</button>
@@ -153,42 +202,48 @@
       <div class="output-body" id="outputBody">
         <!-- Empty state -->
         <div class="empty-state" id="emptyState">
-          <div class="empty-icon-wrap">
-            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <div class="empty-glow"></div>
+          <div class="empty-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><line x1="9" y1="10" x2="15" y2="10" opacity=".5"/><line x1="9" y1="14" x2="13" y2="14" opacity=".3"/></svg>
           </div>
           <p class="empty-title">Your summary will appear here</p>
-          <p class="empty-sub">Enter text on the left and click <strong>Generate Summary</strong></p>
+          <p class="empty-sub">Select domain, choose style, paste text and click <strong>Generate Summary</strong></p>
         </div>
 
         <!-- Loading state -->
-        <div class="loading-state" id="loadingState">
-          <div class="pulse-ring"></div>
-          <p id="loadingMsg">Generating summary...</p>
-          <p class="loading-sub">Llama 3.3 70B is processing your text.</p>
+        <div class="loading-state mode-hidden" id="loadingState">
+          <div class="loader-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <p class="loading-msg" id="loadingMsg">Generating summary...</p>
+          <p class="loading-sub">Llama 3.3 70B is processing your text</p>
         </div>
 
         <!-- Result -->
-        <div class="result-area" id="resultArea">
-          <div class="summary-card">
+        <div class="result-area mode-hidden" id="resultArea">
+          <div class="summary-output">
             <div class="summary-text" id="summaryText"></div>
-            <div class="summary-cursor" id="summaryCursor">|</div>
+            <span class="summary-cursor mode-hidden" id="summaryCursor">|</span>
           </div>
-          <div class="metrics-grid">
-            <div class="metric-card">
-              <div class="metric-value" id="mIn">—</div>
-              <div class="metric-label">Input words</div>
+          <div class="metrics-row">
+            <div class="metric-chip">
+              <span class="metric-num" id="mIn">—</span>
+              <span class="metric-lbl">Input words</span>
             </div>
-            <div class="metric-card">
-              <div class="metric-value" id="mOut">—</div>
-              <div class="metric-label">Output words</div>
+            <div class="metric-divider"></div>
+            <div class="metric-chip">
+              <span class="metric-num" id="mOut">—</span>
+              <span class="metric-lbl">Output words</span>
             </div>
-            <div class="metric-card">
-              <div class="metric-value" id="mComp">—</div>
-              <div class="metric-label">Compression</div>
+            <div class="metric-divider"></div>
+            <div class="metric-chip">
+              <span class="metric-num" id="mComp">—</span>
+              <span class="metric-lbl">Compression</span>
             </div>
-            <div class="metric-card">
-              <div class="metric-value" id="mLat">—</div>
-              <div class="metric-label">Latency</div>
+            <div class="metric-divider"></div>
+            <div class="metric-chip">
+              <span class="metric-num" id="mLat">—</span>
+              <span class="metric-lbl">Latency</span>
             </div>
           </div>
         </div>
@@ -196,14 +251,17 @@
     </div>
   </div>
 
-  <!-- History -->
+  <!-- HISTORY -->
   <div class="history-section" id="historySection">
-    <div class="history-header">
-      <h3>History</h3>
-      <button class="btn-ghost btn-sm" id="clearHistoryBtn">Clear</button>
+    <div class="section-header">
+      <h3 class="section-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        History
+      </h3>
+      <button class="btn-ghost" id="clearHistoryBtn">Clear all</button>
     </div>
-    <div class="history-table-wrap">
-      <table class="history-table">
+    <div class="table-wrap">
+      <table class="data-table">
         <thead><tr><th>Time</th><th>Input</th><th>Output</th><th>Compression</th><th>Preview</th></tr></thead>
         <tbody id="historyBody"></tbody>
       </table>
@@ -211,70 +269,89 @@
   </div>
 </main>
 
-<!-- TAB: COMPARE -->
+<!-- ═══════════════════ TAB: COMPARE ═══════════════════ -->
 <main class="tab-pane" id="tab-compare">
-  <div class="compare-container">
-    <div class="compare-input-area">
-      <label class="field-label">Input Text</label>
-      <textarea id="cmpText" rows="9" placeholder="Paste text to compare Brief vs Detailed summarization..."></textarea>
-      <div class="compare-desc">
-        Runs the same Llama 3.3 70B model twice — once with a concise brief prompt and once with a detailed comprehensive prompt — so you can pick the best result.
-      </div>
-      <button class="btn-primary" id="compareBtn">Run Comparison</button>
+  <div class="page-container">
+    <div class="page-hero">
+      <h2 class="page-title">Brief vs Detailed</h2>
+      <p class="page-desc">Run the same text through two prompt strategies side-by-side and pick the best result.</p>
     </div>
 
-    <div class="compare-results" id="compareResults">
+    <div class="card">
+      <label class="field-label">Input Text</label>
+      <textarea id="cmpText" rows="8" placeholder="Paste your text to compare summarization styles..."></textarea>
+      <button class="btn-primary" id="compareBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18"/><rect x="14" y="3" width="7" height="18"/></svg>
+        Run Comparison
+      </button>
+    </div>
+
+    <div class="compare-results mode-hidden" id="compareResults">
       <div class="compare-cards" id="compareCards"></div>
-      <div class="compare-chart-wrap">
-        <p class="chart-label">Output length comparison (words)</p>
-        <canvas id="compareChart" height="160"></canvas>
+      <div class="card compare-chart-card">
+        <p class="chart-label">Output length (words)</p>
+        <canvas id="compareChart" height="140"></canvas>
       </div>
     </div>
   </div>
 </main>
 
-<!-- TAB: BATCH -->
+<!-- ═══════════════════ TAB: BATCH ═══════════════════ -->
 <main class="tab-pane" id="tab-batch">
-  <div class="batch-container">
-    <div class="batch-controls">
-      <div class="batch-mode-tabs">
-        <button class="mode-btn active" data-batch-mode="manual">Manual</button>
-        <button class="mode-btn" data-batch-mode="csv">CSV Upload</button>
+  <div class="page-container">
+    <div class="page-hero">
+      <h2 class="page-title">Batch Processing</h2>
+      <p class="page-desc">Summarize multiple texts at once. Separate with <code>---</code> or upload a CSV with a <code>text</code> column.</p>
+    </div>
+
+    <div class="card">
+      <div class="seg-row">
+        <div class="mode-seg">
+          <button class="seg-btn active" data-batch-mode="manual">Manual</button>
+          <button class="seg-btn" data-batch-mode="csv">CSV Upload</button>
+        </div>
       </div>
 
       <div id="batchModeManual">
-        <label class="field-label">Texts — separate each with <code>---</code></label>
-        <textarea id="batchInput" rows="12" placeholder="First article text here&#10;---&#10;Second article text here&#10;---&#10;Third article text here"></textarea>
-        <div id="batchCount" class="batch-count"></div>
+        <div class="textarea-wrap">
+          <textarea id="batchInput" rows="10" placeholder="First article here&#10;---&#10;Second article here&#10;---&#10;Third article here"></textarea>
+        </div>
+        <span id="batchCount" class="count-badge"></span>
       </div>
 
       <div id="batchModeCsv" class="mode-hidden">
-        <label class="field-label">CSV file with a <code>text</code> column</label>
         <div class="dropzone" id="csvDropzone">
-          <div class="dropzone-icon-wrap">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <div class="dz-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           </div>
-          <div class="dropzone-text">Drop CSV here or <span class="link">click to browse</span></div>
+          <p class="dz-title">Drop CSV here or <span class="dz-link">browse</span></p>
+          <p class="dz-hint">Needs a "text" column</p>
           <input type="file" id="csvInput" accept=".csv" hidden />
         </div>
-        <div id="csvStatus" class="url-status"></div>
+        <div id="csvStatus" class="status-msg"></div>
       </div>
 
-      <button class="btn-primary" id="batchRunBtn">Process Batch</button>
+      <button class="btn-primary" id="batchRunBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        Process Batch
+      </button>
     </div>
 
-    <div class="batch-results mode-hidden" id="batchResults">
-      <div class="batch-results-header">
-        <h3 id="batchResultsTitle">Results</h3>
-        <button class="btn-secondary" id="batchDownloadBtn">Download CSV</button>
+    <div class="card mode-hidden" id="batchResults">
+      <div class="card-header">
+        <h3 class="card-title" id="batchResultsTitle">Results</h3>
+        <button class="btn-outline" id="batchDownloadBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download CSV
+        </button>
       </div>
-      <div class="batch-progress-wrap" id="batchProgress">
-        <div class="progress-bar-track"><div class="progress-bar-fill" id="batchProgressFill"></div></div>
-        <div class="progress-label" id="batchProgressLabel"></div>
+      <div class="progress-wrap mode-hidden" id="batchProgress">
+        <div class="progress-track"><div class="progress-fill" id="batchProgressFill"></div></div>
+        <span class="progress-label" id="batchProgressLabel"></span>
       </div>
-      <div class="batch-table-wrap">
-        <table class="history-table" id="batchTable">
-          <thead><tr><th>#</th><th>Input Preview</th><th>Summary Preview</th><th>Compression</th><th>Status</th></tr></thead>
+      <div class="table-wrap">
+        <table class="data-table" id="batchTable">
+          <thead><tr><th>#</th><th>Input Preview</th><th>Summary</th><th>Compression</th><th>Status</th></tr></thead>
           <tbody id="batchBody"></tbody>
         </table>
       </div>
@@ -282,120 +359,162 @@
   </div>
 </main>
 
-<!-- TAB: EVALUATE -->
+<!-- ═══════════════════ TAB: EVALUATE ═══════════════════ -->
 <main class="tab-pane" id="tab-evaluate">
-  <div class="evaluate-container">
-    <div class="eval-inputs">
-      <div class="eval-col">
-        <label class="field-label">Reference Summary (ground truth)</label>
-        <textarea id="evalRef" rows="8" placeholder="Paste the reference / ground-truth summary..."></textarea>
+  <div class="page-container narrow">
+    <div class="page-hero">
+      <h2 class="page-title">ROUGE Evaluation</h2>
+      <p class="page-desc">Measure how closely a generated summary matches a reference. ROUGE-1, ROUGE-2, and ROUGE-L are computed client-side.</p>
+    </div>
+
+    <div class="eval-grid">
+      <div class="card">
+        <label class="field-label">Reference Summary</label>
+        <textarea id="evalRef" rows="8" placeholder="Paste the ground-truth or reference summary..."></textarea>
       </div>
-      <div class="eval-col">
+      <div class="card">
         <label class="field-label">Generated Summary</label>
         <textarea id="evalGen" rows="8" placeholder="Paste the generated summary to evaluate..."></textarea>
-        <button class="btn-ghost btn-sm use-last-btn" id="useLastSummary">Use last generated summary</button>
+        <button class="btn-ghost use-last-btn" id="useLastSummary">Use last generated</button>
       </div>
     </div>
-    <button class="btn-primary" id="evalRunBtn">Compute ROUGE Metrics</button>
 
-    <div class="eval-results mode-hidden" id="evalResults">
-      <div class="rouge-gauge-row" id="rougeGauges"></div>
-      <div class="eval-extra-metrics">
-        <div class="metric-card"><div class="metric-value" id="evalComp">—</div><div class="metric-label">Compression ratio</div></div>
-        <div class="metric-card"><div class="metric-value" id="evalSentLen">—</div><div class="metric-label">Avg sentence length</div></div>
-        <div class="metric-card"><div class="metric-value" id="evalRougeLsum">—</div><div class="metric-label">ROUGE-Lsum</div></div>
+    <button class="btn-primary" id="evalRunBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Compute ROUGE Metrics
+    </button>
+
+    <div class="card mode-hidden" id="evalResults">
+      <div class="rouge-gauges" id="rougeGauges"></div>
+      <div class="eval-metrics-row">
+        <div class="eval-metric"><span class="eval-metric-val" id="evalComp">—</span><span class="eval-metric-lbl">Compression</span></div>
+        <div class="eval-metric"><span class="eval-metric-val" id="evalSentLen">—</span><span class="eval-metric-lbl">Avg sentence</span></div>
+        <div class="eval-metric"><span class="eval-metric-val" id="evalRougeLsum">—</span><span class="eval-metric-lbl">ROUGE-Lsum</span></div>
       </div>
-      <canvas id="evalRadar" height="260" style="max-width:400px;margin:2rem auto;display:block"></canvas>
+      <canvas id="evalRadar" height="260" style="max-width:380px;margin:1.5rem auto;display:block"></canvas>
     </div>
   </div>
 </main>
 
-<!-- TAB: AI AGENT -->
+<!-- ═══════════════════ TAB: AI AGENT ═══════════════════ -->
 <main class="tab-pane" id="tab-agent">
-  <div class="agent-container">
+  <div class="page-container narrow">
     <div class="agent-hero">
-      <div class="agent-hero-label">AUTONOMOUS AGENT</div>
-      <h2>AI Summarization Agent</h2>
-      <p>Detects the <strong>domain</strong> of your text (news, scientific, technical, finance, dialogue),
-         selects the optimal prompt strategy, evaluates quality via ROUGE-L,
-         and <strong>retries automatically</strong> if quality is below threshold.</p>
+      <div class="agent-hero-badge">AUTONOMOUS AGENT</div>
+      <h2 class="agent-hero-title">AI Summarization Agent</h2>
+      <p class="agent-hero-desc">
+        Detects your text's <strong>domain</strong>, selects the optimal prompt strategy,
+        evaluates quality via ROUGE-L, and <strong>retries automatically</strong> if needed.
+      </p>
+      <div class="agent-hero-pills">
+        <span class="hero-pill">Domain detection</span>
+        <span class="hero-pill">Strategy selection</span>
+        <span class="hero-pill">Quality scoring</span>
+        <span class="hero-pill">Auto-retry</span>
+      </div>
     </div>
 
-    <div class="agent-input-area">
+    <div class="card">
       <label class="field-label">Input Text</label>
-      <textarea id="agentInput" rows="10" placeholder="Paste your text — the agent will analyze and summarize it..."></textarea>
-      <button class="btn-primary btn-agent" id="agentRunBtn">Run Agent</button>
+      <textarea id="agentInput" rows="9" placeholder="Paste your text — the agent will analyze domain, select strategy, and summarize..."></textarea>
+      <button class="btn-primary btn-agent" id="agentRunBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Run Agent
+      </button>
     </div>
 
     <!-- Steps -->
     <div class="agent-steps mode-hidden" id="agentSteps">
       <div class="agent-step" id="agentStep1">
-        <div class="step-num">01</div>
-        <div class="step-content">
+        <div class="step-track"><div class="step-dot"></div><div class="step-line"></div></div>
+        <div class="step-body">
           <div class="step-title">Analyzing text</div>
           <div class="step-detail" id="agentStep1Detail"></div>
         </div>
-        <div class="step-status pending" id="agentStep1Status">—</div>
+        <div class="step-status pending" id="agentStep1Status"></div>
       </div>
       <div class="agent-step" id="agentStep2">
-        <div class="step-num">02</div>
-        <div class="step-content">
+        <div class="step-track"><div class="step-dot"></div><div class="step-line"></div></div>
+        <div class="step-body">
           <div class="step-title">Selecting prompt strategy</div>
           <div class="step-detail" id="agentStep2Detail"></div>
         </div>
-        <div class="step-status pending" id="agentStep2Status">—</div>
+        <div class="step-status pending" id="agentStep2Status"></div>
       </div>
       <div class="agent-step" id="agentStep3">
-        <div class="step-num">03</div>
-        <div class="step-content">
+        <div class="step-track"><div class="step-dot"></div><div class="step-line"></div></div>
+        <div class="step-body">
           <div class="step-title">Generating summary</div>
           <div class="step-detail" id="agentStep3Detail"></div>
         </div>
-        <div class="step-status pending" id="agentStep3Status">—</div>
+        <div class="step-status pending" id="agentStep3Status"></div>
       </div>
-      <div class="agent-step" id="agentStep4">
-        <div class="step-num">04</div>
-        <div class="step-content">
+      <div class="agent-step last" id="agentStep4">
+        <div class="step-track"><div class="step-dot"></div></div>
+        <div class="step-body">
           <div class="step-title">Evaluating quality</div>
           <div class="step-detail" id="agentStep4Detail"></div>
         </div>
-        <div class="step-status pending" id="agentStep4Status">—</div>
+        <div class="step-status pending" id="agentStep4Status"></div>
       </div>
     </div>
 
     <!-- Result -->
     <div class="agent-result mode-hidden" id="agentResult">
-      <div class="agent-result-header">
-        <div class="confidence-ring-wrap">
-          <svg class="confidence-ring" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="34" stroke="#30363d" stroke-width="8" fill="none"/>
-            <circle cx="40" cy="40" r="34" stroke="#667eea" stroke-width="8" fill="none"
+      <div class="agent-stats-row">
+        <div class="conf-ring-wrap">
+          <svg class="conf-ring" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="34" stroke="#1E2D47" stroke-width="7" fill="none"/>
+            <circle cx="40" cy="40" r="34" stroke="url(#ringGrad)" stroke-width="7" fill="none"
                     stroke-dasharray="213.6" stroke-dashoffset="213.6"
                     stroke-linecap="round" transform="rotate(-90 40 40)"
                     id="confidenceCircle"/>
+            <defs>
+              <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#6366F1"/>
+                <stop offset="100%" stop-color="#A855F7"/>
+              </linearGradient>
+            </defs>
           </svg>
-          <div class="confidence-label">
+          <div class="conf-label">
             <span id="confidencePct">0%</span>
             <small>confidence</small>
           </div>
         </div>
-        <div class="agent-meta">
-          <div class="agent-meta-row"><span class="meta-key">Domain detected</span><span class="meta-val" id="agentDomain">—</span></div>
-          <div class="agent-meta-row"><span class="meta-key">Prompt style</span><span class="meta-val" id="agentStyle">—</span></div>
-          <div class="agent-meta-row"><span class="meta-key">Quality score (ROUGE-L)</span><span class="meta-val" id="agentQuality">—</span></div>
-          <div class="agent-meta-row"><span class="meta-key">Total latency</span><span class="meta-val" id="agentLatency">—</span></div>
-          <div class="agent-meta-row"><span class="meta-key">Attempts</span><span class="meta-val" id="agentAttempts">—</span></div>
+        <div class="agent-meta-grid">
+          <div class="agent-meta-item">
+            <span class="meta-key">Domain</span>
+            <span class="meta-val" id="agentDomain">—</span>
+          </div>
+          <div class="agent-meta-item">
+            <span class="meta-key">Prompt style</span>
+            <span class="meta-val" id="agentStyle">—</span>
+          </div>
+          <div class="agent-meta-item">
+            <span class="meta-key">ROUGE-L</span>
+            <span class="meta-val" id="agentQuality">—</span>
+          </div>
+          <div class="agent-meta-item">
+            <span class="meta-key">Latency</span>
+            <span class="meta-val" id="agentLatency">—</span>
+          </div>
+          <div class="agent-meta-item">
+            <span class="meta-key">Attempts</span>
+            <span class="meta-val" id="agentAttempts">—</span>
+          </div>
         </div>
       </div>
 
-      <div class="agent-summary-card">
-        <h4>Summary</h4>
+      <div class="card agent-summary-card">
+        <div class="card-header">
+          <h4 class="card-title">Summary</h4>
+          <button class="btn-ghost" id="agentCopyBtn">Copy</button>
+        </div>
         <div id="agentSummaryText" class="summary-text"></div>
-        <button class="btn-ghost btn-sm" id="agentCopyBtn" style="margin-top:10px">Copy summary</button>
       </div>
 
-      <div class="agent-analysis-card">
-        <h4>Text Analysis</h4>
+      <div class="card">
+        <h4 class="card-title" style="margin-bottom:14px">Text Analysis</h4>
         <div id="agentAnalysis" class="analysis-grid"></div>
       </div>
     </div>

@@ -12,6 +12,8 @@ const SAMPLES = {
 
 /* ── State ──────────────────────────────────────────── */
 let currentMode = 'text';
+let currentDomain = 'general';
+let currentStyle = 'detailed';
 let lastSummary = '';
 let history = JSON.parse(localStorage.getItem('sums_history') || '[]');
 let pdfFile = null;
@@ -56,13 +58,31 @@ async function checkHealth() {
 }
 
 /* ═══════════════ INPUT MODES ═══════════════ */
-document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
+document.querySelectorAll('#inputModeSeg .seg-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     currentMode = btn.dataset.mode;
-    document.querySelectorAll('.mode-btn[data-mode]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#inputModeSeg .seg-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.input-mode').forEach(el => el.classList.remove('active-mode'));
     document.getElementById('mode-' + currentMode).classList.add('active-mode');
+  });
+});
+
+/* ═══════════════ DOMAIN PILLS ═══════════════ */
+document.querySelectorAll('.domain-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentDomain = btn.dataset.domain;
+    document.querySelectorAll('.domain-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+/* ═══════════════ STYLE SELECTOR ═══════════════ */
+document.querySelectorAll('.style-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentStyle = btn.dataset.style;
+    document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
   });
 });
 
@@ -152,7 +172,7 @@ async function handleGenerate() {
     } else {
       const text = $('inputText').value.trim();
       if (!text || text.split(/\s+/).length < 10) { toast('Enter at least 10 words', 'error'); return; }
-      const payload = { text, max_length: maxLen, min_length: minLen };
+      const payload = { text, max_length: maxLen, min_length: minLen, domain: currentDomain, style: currentStyle };
 
       if (stream) {
         setOutputStreaming();
@@ -348,9 +368,9 @@ function renderCompareResults(res) {
 }
 
 /* ═══════════════ BATCH ═══════════════ */
-document.querySelectorAll('.mode-btn[data-batch-mode]').forEach(btn => {
+document.querySelectorAll('.seg-btn[data-batch-mode]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.mode-btn[data-batch-mode]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.seg-btn[data-batch-mode]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const m = btn.dataset.batchMode;
     $('batchModeManual').classList.toggle('mode-hidden', m !== 'manual');
