@@ -405,25 +405,49 @@ $('batchRunBtn').addEventListener('click', async () => {
       const pct = Math.round(((i + 1) / texts.length) * 100);
       $('batchProgressFill').style.width = `${pct}%`;
       $('batchProgressLabel').textContent = `${i + 1}/${texts.length}`;
+      const fullInput = texts[i];
+      const fullSummary = r.summary || '';
       const tr = document.createElement('tr');
+      tr.dataset.fullInput = fullInput;
+      tr.dataset.fullSummary = fullSummary;
       if (r.status === 'error') {
-        tr.innerHTML = `<td>${i+1}</td><td class="preview-cell">${esc(texts[i].slice(0,50))}</td><td colspan="2" style="color:var(--red)">${esc(r.detail)}</td><td>Failed</td>`;
+        tr.innerHTML = `<td>${i+1}</td><td class="preview-cell">${esc(fullInput.slice(0,60))}…</td><td colspan="2" style="color:var(--red)">${esc(r.detail)}</td><td>Failed</td>`;
       } else {
-        tr.innerHTML = `<td>${i+1}</td><td class="preview-cell">${esc(texts[i].slice(0,60))}...</td><td class="preview-cell">${esc((r.summary||'').slice(0,80))}...</td><td>${r.compression_ratio?.toFixed(1)??'?'}x</td><td style="color:var(--green)">Done</td>`;
+        const previewId = `batchPreview${i}`;
+        tr.innerHTML = `<td>${i+1}</td><td class="preview-cell">${esc(fullInput.slice(0,60))}…</td><td class="preview-cell" style="cursor:pointer" onclick="toggleBatchPreview('${previewId}')">${esc(fullSummary.slice(0,80))}… <span style="color:var(--accent);font-size:.75rem">[expand]</span></td><td>${r.compression_ratio?.toFixed(1)??'?'}x</td><td style="color:var(--green)">Done</td>`;
       }
       $('batchBody').appendChild(tr);
+      if (r.status !== 'error') {
+        const previewRow = document.createElement('tr');
+        previewRow.id = `batchPreview${i}`;
+        previewRow.style.display = 'none';
+        previewRow.innerHTML = `<td colspan="5" style="padding:12px 16px;background:rgba(102,126,234,.04);border-top:none"><div style="font-size:.8rem;color:var(--text-muted);margin-bottom:6px">Full summary:</div><div style="font-size:.875rem;line-height:1.6">${esc(fullSummary)}</div></td>`;
+        $('batchBody').appendChild(previewRow);
+      }
     });
     setText('batchResultsTitle', `${res.results.length} results`);
   } catch (err) { toast(err.message, 'error'); }
   finally { btn.disabled = false; }
 });
 
+function toggleBatchPreview(id) {
+  const row = document.getElementById(id);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? '' : 'none';
+}
+window.toggleBatchPreview = toggleBatchPreview;
+
 $('batchDownloadBtn').addEventListener('click', () => {
-  const rows = [...document.querySelectorAll('#batchBody tr')];
+  const rows = [...document.querySelectorAll('#batchBody tr[data-full-input]')];
   if (!rows.length) return;
-  const csv = ['#,input,summary,compression,status', ...rows.map(tr =>
-    [...tr.querySelectorAll('td')].map(td => `"${td.textContent.replace(/"/g,'""')}"`).join(',')
-  )].join('\n');
+  const escape = v => `"${(v||'').replace(/"/g,'""')}"`;
+  const csv = ['#,input,summary,compression,status', ...rows.map((tr, i) => {
+    const tds = tr.querySelectorAll('td');
+    const num = tds[0]?.textContent || (i+1);
+    const compression = tds[3]?.textContent || '';
+    const status = tds[4]?.textContent || '';
+    return [escape(num), escape(tr.dataset.fullInput), escape(tr.dataset.fullSummary), escape(compression), escape(status)].join(',');
+  })].join('\n');
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
     download: `batch_${Date.now()}.csv`,
@@ -499,7 +523,7 @@ async function runAgent() {
   step('2','running','...','Choosing prompt strategy...');
   await wait(250);
   step('2','done','Done','Strategy selected');
-  step('3','running','...','Sending to Llama 3.1...');
+  step('3','running','...','Sending to Llama 3.3 70B...');
 
   try {
     const res = await API.runAgent(text);
@@ -516,9 +540,15 @@ async function runAgent() {
   }
 }
 
-function step(n, cls, icon, detail) {
+const STEP_ICONS = {
+  pending: `<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"/></svg>`,
+  running: `<span class="step-spinner"></span>`,
+  done:    `<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="8" fill="var(--green)" fill-opacity=".15"/><circle cx="9" cy="9" r="8" fill="none" stroke="var(--green)" stroke-width="1.5"/><polyline points="5.5,9 7.8,11.5 12.5,6.5" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  error:   `<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="8" fill="var(--red)" fill-opacity=".15"/><circle cx="9" cy="9" r="8" fill="none" stroke="var(--red)" stroke-width="1.5"/><line x1="6" y1="6" x2="12" y2="12" stroke="var(--red)" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="6" x2="6" y2="12" stroke="var(--red)" stroke-width="2" stroke-linecap="round"/></svg>`,
+};
+function step(n, cls, _icon, detail) {
   const s = $(`agentStep${n}Status`), d = $(`agentStep${n}Detail`), el = $(`agentStep${n}`);
-  s.className = `step-status ${cls}`; s.textContent = icon;
+  s.className = `step-status ${cls}`; s.innerHTML = STEP_ICONS[cls] || '';
   if (detail) d.textContent = detail;
   el.className = `agent-step${cls==='running'?' active':cls==='done'?' done':''}`;
 }

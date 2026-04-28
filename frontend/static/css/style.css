@@ -1132,35 +1132,57 @@ textarea:focus { border-color: var(--accent); }
   gap: 14px;
   padding: 14px 18px;
   border-bottom: 1px solid var(--border-muted);
-  transition: background var(--transition);
+  transition: background var(--transition), border-left-color var(--transition);
+  border-left: 3px solid transparent;
 }
 .agent-step:last-child { border-bottom: none; }
-.agent-step.active { background: rgba(102,126,234,.06); }
-.agent-step.done { opacity: .7; }
+.agent-step.active {
+  background: rgba(102,126,234,.06);
+  border-left-color: var(--accent);
+}
+.agent-step.done {
+  border-left-color: var(--green);
+}
 
 .step-num {
-  font-size: .7rem;
-  font-weight: 800;
+  font-size: .68rem;
+  font-weight: 700;
   font-family: var(--mono);
   color: var(--text-muted);
   flex-shrink: 0;
-  width: 32px;
+  width: 26px;
   text-align: center;
   letter-spacing: .04em;
 }
+.agent-step.active .step-num { color: var(--accent); }
+.agent-step.done .step-num   { color: var(--green); }
+
 .step-content { flex: 1; }
 .step-title { font-size: .875rem; font-weight: 500; }
 .step-detail { font-size: .78rem; color: var(--text-muted); margin-top: 2px; }
+
 .step-status {
-  font-size: 1.1rem;
   flex-shrink: 0;
-  width: 24px;
-  text-align: center;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.step-status.pending  { color: var(--text-muted); }
-.step-status.running  { color: var(--accent); animation: pulse-opacity 1s ease-in-out infinite; }
-.step-status.done     { color: var(--green); }
-.step-status.error    { color: var(--red); }
+.step-status.pending { opacity: .35; }
+.step-status.running { color: var(--accent); }
+.step-status.done    {}
+.step-status.error   {}
+
+.step-spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(102,126,234,.25);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse-opacity { 0%,100%{opacity:1} 50%{opacity:.4} }
 
 /* Agent result */

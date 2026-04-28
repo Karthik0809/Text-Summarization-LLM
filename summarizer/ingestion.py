@@ -105,10 +105,9 @@ def extract_from_url(url: str) -> tuple[str, str]:
     if result:
         return result
     raise ValueError(
-        "Could not extract article text from this URL.\n\n"
-        "**Possible reasons:**\n"
-        "- The page requires JavaScript (e.g. MSN, Twitter, LinkedIn)\n"
-        "- The site blocks automated access (403/paywalled)\n"
-        "- The URL points to a video or image\n\n"
-        "**Tip:** Open the article, select all text (Ctrl+A), copy it, and paste into the Text tab."
+        "Could not extract article text from this URL. "
+        "Possible reasons: the page requires JavaScript (e.g. MSN, Twitter, LinkedIn), "
+        "the site blocks automated access (403/paywalled), "
+        "or the URL points to a video or image. "
+        "Tip: Open the article, select all text (Ctrl+A), copy it, and paste into the Text tab."
     )
