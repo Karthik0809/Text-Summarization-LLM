@@ -23,8 +23,10 @@ MODELS: dict[str, dict] = {
 }
 
 _SYSTEM = (
-    "You are a professional summarization expert. "
-    "Your summaries are accurate, comprehensive, and clearly written."
+    "You are an expert summarization assistant. "
+    "You produce summaries that are accurate, complete, and faithful to the source. "
+    "You never omit specific names, tools, techniques, numbers, or causal relationships. "
+    "You condense by removing filler and repetition only — never by generalizing away specifics."
 )
 
 _DOMAIN_HINTS: dict[str, str] = {
@@ -37,17 +39,27 @@ _DOMAIN_HINTS: dict[str, str] = {
 }
 
 _PROMPT_DETAILED = """\
-Summarize the following text in approximately {target_words} words (about {pct}% of the original). \
-Capture the key ideas, important facts, and conclusions. \
-Do NOT pad or repeat — be concise and direct. \
-Write in clear professional prose. Output ONLY the summary — no preamble or labels.
+Summarize the following text in approximately {target_words} words.
+
+Rules:
+- Preserve ALL named entities: people, organizations, product names, tool names, CVEs, \
+malware names, URLs, version numbers, and proper nouns exactly as written.
+- Preserve ALL technical details: attack vectors, mechanisms, protocols, methods, \
+and how/why things work.
+- Preserve ALL causal relationships: what caused what, why something was chosen, \
+what the effect was.
+- Preserve ALL numbers, dates, statistics, and figures exactly.
+- Remove ONLY: filler phrases, repeated information, and transitional padding.
+- Do NOT generalize specifics into vague descriptions.
+- Write in clear, flowing professional prose.
+- Output ONLY the summary — no preamble, no labels, no bullet points.
 {hint}
 Text:
 {text}"""
 
 _PROMPT_BRIEF = """\
-Summarize the following text in 2-3 sentences (under 60 words). \
-Keep only the single most important point and one or two supporting facts. \
+Summarize the following text in 2-4 sentences. \
+Include the most critical facts, the main named entities, and the key outcome. \
 Output ONLY the summary — no preamble or labels.
 
 Text:
@@ -93,13 +105,13 @@ class SummarizationEngine:
         if style == "brief":
             content = _PROMPT_BRIEF.format(text=text[:8000])
         else:
-            # Target 25-35% of input length, clamped to [min_length, max_length]
-            raw_target = max(int(input_words * 0.30), min_length)
+            # Target ~50% of input length — enough room to preserve all specifics
+            # clamped to [min_length, max_length]
+            raw_target = max(int(input_words * 0.50), min_length)
             target_words = min(raw_target, max_length)
-            pct = round(target_words / max(input_words, 1) * 100)
-            hint_line = f"\nDomain hint: {hint}\n" if hint else ""
+            hint_line = f"\nDomain guidance: {hint}\n" if hint else ""
             content = _PROMPT_DETAILED.format(
-                target_words=target_words, pct=pct,
+                target_words=target_words,
                 hint=hint_line, text=text[:8000]
             )
         return [
@@ -118,11 +130,11 @@ class SummarizationEngine:
     ) -> SummaryResult:
         t0 = time.perf_counter()
         if style == "brief":
-            max_tokens = 100
+            max_tokens = 120
         else:
             input_words = len(text.split())
-            target = min(max(int(input_words * 0.30), min_length), max_length)
-            max_tokens = min(target * 2, 600)  # ~1.5 tokens/word headroom
+            target = min(max(int(input_words * 0.50), min_length), max_length)
+            max_tokens = min(target * 2, 900)  # ~1.5 tokens/word headroom
         try:
             resp = self.client.chat.completions.create(
                 model=self.model_id,
@@ -148,8 +160,8 @@ class SummarizationEngine:
 
     def stream(self, text: str, max_length: int = 400, domain: str = "general", **_) -> Iterator[str]:
         input_words = len(text.split())
-        target = min(max(int(input_words * 0.30), 50), max_length)
-        max_tokens = min(target * 2, 600)
+        target = min(max(int(input_words * 0.50), 50), max_length)
+        max_tokens = min(target * 2, 900)
         try:
             s = self.client.chat.completions.create(
                 model=self.model_id,
