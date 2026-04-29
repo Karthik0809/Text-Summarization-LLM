@@ -3,8 +3,8 @@ title: Advanced Text Summarization with BART
 emoji: 🔬
 colorFrom: blue
 colorTo: indigo
-sdk: streamlit
-app_file: app.py
+sdk: docker
+app_port: 7860
 pinned: true
 license: mit
 ---
