@@ -20,89 +20,53 @@ license: mit
 
 > **Live Demo →** [huggingface.co/spaces/karthikmulugu08/text-summarizer](https://huggingface.co/spaces/karthikmulugu08/text-summarizer)
 
-End-to-end abstractive text summarization project — started with fine-tuning **facebook/bart-large-cnn** on CNN/DailyMail (ROUGE-L 0.41), iterated through multi-model transformer support (BART · PEGASUS · T5 · DistilBART), local inference via **Ollama (Llama 3.1 8B)**, and production deployment via **Groq (Llama 3.3 70B)**. Ships with a custom dark-mode HTML/CSS/JS SPA, FastAPI REST backend, autonomous AI agent, real-time streaming, and multi-modal input.
+Production-grade abstractive text summarization powered by **Groq's Llama 3.3 70B**, with a custom dark-mode HTML/CSS/JS SPA, FastAPI REST backend, autonomous AI agent, real-time streaming, and multi-modal input — deployed on HuggingFace Spaces via Docker.
 
 ---
 
-## What Was Built
+## Features
 
-| Area | Details |
+| Feature | Details |
 |---|---|
-| **Fine-tuning pipeline** | Seq2SeqTrainer script for BART/DistilBART on CNN/DailyMail — early stopping, ROUGE-L metric, gradient accumulation, fp16, HF Hub push |
-| **Multi-model** | BART Large, DistilBART, PEGASUS, T5 — switchable per request |
-| **Local inference** | Ollama + Llama 3.1 8B — zero cloud dependency |
-| **Production LLM** | Groq API — Llama 3.3 70B; responses under 2 s |
-| **Prompt engineering** | Domain-aware prompts (6 domains) with exhaustive fact-preservation rules; Detailed / Brief styles |
-| **AI Agent** | Keyword-based domain detection → strategy selection → summarize → ROUGE-L quality score → auto-retry |
-| **Streaming** | Real-time token-by-token output via Groq streaming API |
-| **Multi-modal input** | Plain text · PDF (pdfplumber) · Web URL (trafilatura) |
+| **LLM Engine** | Groq API — Llama 3.3 70B; responses under 2 s |
+| **Domain-aware prompting** | General · News · Scientific · Technical · Finance · Dialogue |
+| **Summary style** | Detailed (fact-preserving prose) or Brief (3–4 sentences) |
+| **Multi-modal input** | Plain text · PDF upload (pdfplumber) · Web URL (trafilatura) |
+| **Real-time streaming** | Token-by-token output via Groq streaming API |
+| **AI Agent** | Domain detection → strategy selection → summarize → ROUGE-L quality check → auto-retry |
 | **Batch processing** | Manual `---` separator or CSV upload; full-text CSV download |
-| **ROUGE Evaluation** | ROUGE-1/2/L computed client-side in vanilla JS; radar chart + gauge bars drawn on Canvas |
-| **UI** | Custom dark-mode HTML/CSS/JS SPA — no framework; 5 feature tabs |
+| **ROUGE Evaluation** | ROUGE-1/2/L computed client-side in vanilla JS; radar chart + gauge bars |
 | **Export** | TXT · JSON · Markdown |
 | **History** | Session history persisted in `localStorage` |
-| **REST API** | FastAPI + Pydantic v2 + Swagger UI + CORS |
+| **Custom UI** | Vanilla HTML/CSS/JS dark-mode SPA — no UI framework |
+| **REST API** | FastAPI with Swagger UI, Pydantic v2, CORS |
 | **Docker** | Single Dockerfile, runs on port 7860 |
-| **CI/CD** | GitHub Actions → pytest + ruff → auto-deploy to HuggingFace Spaces |
+| **CI/CD** | GitHub Actions → auto-deploy to HuggingFace Spaces |
 
 ---
 
 ## Five Feature Tabs
 
 ### Summarize
-Pick a **domain** (General · News · Scientific · Technical · Finance · Dialogue) and **style** (Detailed or Brief). Input via text area, PDF drop-zone, or URL fetch. Real-time streaming toggle. Metrics (input/output words, compression ratio, latency) displayed inline. Export as TXT, JSON, or Markdown.
+Pick a **domain** and **style** (Detailed or Brief). Input via text area, PDF drop-zone, or URL fetch. Toggle real-time streaming. Metrics (input/output words, compression ratio, latency) shown inline. Export as TXT, JSON, or Markdown.
 
 ### Compare
-Run the same text through **Brief** and **Detailed** prompt strategies side-by-side. Canvas bar chart shows output length for each style.
+Run the same text through **Brief** and **Detailed** prompt strategies side-by-side. Canvas bar chart shows output length for each.
 
 ### Batch
-Summarize up to 20 texts at once — separate with `---` or upload a CSV with a `text` column. Expandable per-row previews. Download all results as CSV.
+Summarize multiple texts — separate with `---` or upload a CSV with a `text` column. Expandable per-row previews. Download results as CSV.
 
 ### Evaluate
-ROUGE-1, ROUGE-2, and ROUGE-L computed **entirely in the browser** (no server round-trip) via a custom vanilla JS implementation. Results displayed as gauge bars and a Canvas radar chart.
+ROUGE-1, ROUGE-2, and ROUGE-L computed **entirely in the browser** via a custom vanilla JS implementation — no server round-trip. Results shown as gauge bars and a Canvas radar chart.
 
 ### AI Agent
-Fully autonomous 4-step pipeline:
-1. **Analyze** — counts words, detects domain via keyword scoring, measures complexity
+Autonomous 4-step pipeline:
+1. **Analyze** — counts words, detects domain via keyword scoring, measures sentence complexity
 2. **Select strategy** — picks prompt style and token budget for the detected domain
 3. **Summarize** — calls Llama 3.3 70B via Groq
-4. **Evaluate** — scores with ROUGE-L against an extractive baseline; retries with alternate strategy if below threshold
+4. **Evaluate** — scores quality with ROUGE-L; retries with alternate strategy if below threshold
 
-Animated step tracker, confidence ring (SVG), and text-analysis breakdown panel.
-
----
-
-## Model & Inference Evolution
-
-```
-Phase 1 — Fine-tuning pipeline (implemented)
-  facebook/bart-large-cnn / DistilBART
-  Seq2SeqTrainer + early stopping + ROUGE-L metric + gradient accumulation + fp16
-  CNN/DailyMail 3.0.0 via HuggingFace Datasets — optional HF Hub push
-
-Phase 2 — Multi-model transformer API
-  BART Large · DistilBART · PEGASUS · T5
-  Switchable per request via model registry
-
-Phase 3 — Local LLM (Ollama)
-  Llama 3.1 8B  ──►  zero cloud cost, tested locally
-
-Phase 4 — Production (Groq)
-  Llama 3.3 70B Versatile  ──►  sub-2s latency, deployed on HF Spaces
-```
-
----
-
-## Prompt Engineering
-
-All prompts follow exhaustive fact-preservation rules:
-- Keep every named entity, date, number, statistic, and percentage exactly as written
-- Preserve causal relationships (why something happened)
-- Keep quoted statements with speaker and tense
-- Never collapse two separate points into one
-- Remove only filler phrases and direct repetition
-
-Six domain hints layer on top: scientific focuses on hypothesis/findings/conclusions; news leads with main event + who/what/when/where/why; finance preserves all figures and strategic decisions exactly; etc.
+Displays an animated step tracker, SVG confidence ring, and full text-analysis breakdown.
 
 ---
 
@@ -112,7 +76,7 @@ Six domain hints layer on top: scientific focuses on hypothesis/findings/conclus
 Input (Text / PDF / URL)
         │
         ▼
-FastAPI  /api/v1            ◄──  HTML/CSS/JS SPA  (frontend/)
+FastAPI  /api/v1               ◄──  HTML/CSS/JS SPA  (frontend/)
 ├── POST /summarize
 ├── POST /summarize/url
 ├── POST /summarize/pdf
@@ -121,7 +85,7 @@ FastAPI  /api/v1            ◄──  HTML/CSS/JS SPA  (frontend/)
 └── POST /agent/run
         │
         ▼
-Groq API — Llama 3.3 70B
+Groq API — Llama 3.3 70B Versatile
 (domain-aware prompt · detailed / brief · streaming)
         │
         ▼
@@ -140,7 +104,7 @@ cd Text-Summarization-LLM
 pip install -r requirements.txt
 
 cp .env.example .env
-# set GROQ_API_KEY=your_key  (free at console.groq.com)
+# set GROQ_API_KEY=your_key   (free at console.groq.com)
 
 uvicorn main:app --reload --port 7860
 # App  → http://localhost:7860
@@ -152,15 +116,6 @@ uvicorn main:app --reload --port 7860
 ```bash
 docker build -t text-summarizer .
 docker run -p 7860:7860 -e GROQ_API_KEY=your_key text-summarizer
-```
-
-### Fine-tune (optional)
-
-```bash
-python training/train.py \
-  --model_id facebook/bart-large-cnn \
-  --train_samples 10000 \
-  --epochs 3 --batch_size 4 --fp16
 ```
 
 ---
@@ -187,35 +142,26 @@ python training/train.py \
 ├── frontend/
 │   ├── index.html                 # Dark-mode SPA — all 5 tabs
 │   └── static/
-│       ├── css/style.css          # Full custom design system
+│       ├── css/style.css          # Custom design system
 │       └── js/
 │           ├── api.js             # Fetch wrappers for all endpoints
-│           └── app.js             # UI state, streaming, charts, agent steps
+│           └── app.js             # UI state, streaming, canvas charts, agent steps
 ├── summarizer/
-│   ├── core.py                    # Groq engine + domain-aware prompts + streaming
+│   ├── core.py                    # Groq engine + domain prompts + streaming
 │   ├── ingestion.py               # PDF (pdfplumber) + URL (trafilatura)
-│   ├── evaluation.py              # ROUGE scoring
+│   ├── evaluation.py              # Server-side ROUGE scoring
 │   └── config.py                  # pydantic-settings
 ├── api/
 │   ├── routes.py                  # All FastAPI route handlers
 │   └── schemas.py                 # Pydantic v2 request/response models
 ├── agent/
-│   └── summarization_agent.py     # Autonomous agent: detect → select → summarize → evaluate
-├── training/
-│   ├── train.py                   # Seq2SeqTrainer fine-tuning script
-│   └── evaluate.py                # Standalone ROUGE evaluation
-├── tests/
-│   ├── test_api.py                # Endpoint tests
-│   └── test_core.py               # Unit tests for ingestion + evaluation
+│   └── summarization_agent.py     # Autonomous agent pipeline
 ├── .github/workflows/
 │   ├── ci.yml                     # pytest + ruff on Python 3.10 & 3.11
 │   └── deploy.yml                 # Auto-deploy to HuggingFace Spaces
 ├── Dockerfile
-├── requirements.txt
-└── pyproject.toml
+└── requirements.txt
 ```
-
----
 
 ---
 
