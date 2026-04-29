@@ -11,7 +11,7 @@ license: mit
 
 # Text Summarization — LLM-Powered
 
-[![CI](https://github.com/Karthik0809/Text-Summarization-Using-BART/actions/workflows/ci.yml/badge.svg)](https://github.com/Karthik0809/Text-Summarization-Using-BART/actions)
+[![CI](https://github.com/Karthik0809/Text-Summarization-LLM/actions/workflows/ci.yml/badge.svg)](https://github.com/Karthik0809/Text-Summarization-LLM/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/🤗%20HF%20Spaces-Live%20Demo-orange)](https://huggingface.co/spaces/karthikmulugu08/text-summarizer)
@@ -71,8 +71,8 @@ Web URL       ──────►  trafilatura       ──►  (domain-aware 
 ### Option 1 — Python (local)
 
 ```bash
-git clone https://github.com/Karthik0809/Text-Summarization-Using-BART.git
-cd Text-Summarization-Using-BART
+git clone https://github.com/Karthik0809/Text-Summarization-LLM.git
+cd Text-Summarization-LLM
 pip install -r requirements.txt
 
 # Set your Groq API key (free at console.groq.com)
