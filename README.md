@@ -28,7 +28,7 @@ End-to-end abstractive text summarization project — started with fine-tuning *
 
 | Area | Details |
 |---|---|
-| **Fine-tuning** | facebook/bart-large-cnn on CNN/DailyMail (300K+ pairs) — ROUGE-L 0.41, competitive with published baselines |
+| **Fine-tuning pipeline** | Seq2SeqTrainer script for BART/DistilBART on CNN/DailyMail — early stopping, ROUGE-L metric, gradient accumulation, fp16, HF Hub push |
 | **Multi-model** | BART Large, DistilBART, PEGASUS, T5 — switchable per request |
 | **Local inference** | Ollama + Llama 3.1 8B — zero cloud dependency |
 | **Production LLM** | Groq API — Llama 3.3 70B; responses under 2 s |
@@ -75,9 +75,10 @@ Animated step tracker, confidence ring (SVG), and text-analysis breakdown panel.
 ## Model & Inference Evolution
 
 ```
-Phase 1 — Fine-tuning
-  facebook/bart-large-cnn  ──►  CNN/DailyMail (300K pairs, 3 epochs)
-  Seq2SeqTrainer + early stopping + ROUGE-L metric  ──►  ROUGE-L 0.41
+Phase 1 — Fine-tuning pipeline (implemented)
+  facebook/bart-large-cnn / DistilBART
+  Seq2SeqTrainer + early stopping + ROUGE-L metric + gradient accumulation + fp16
+  CNN/DailyMail 3.0.0 via HuggingFace Datasets — optional HF Hub push
 
 Phase 2 — Multi-model transformer API
   BART Large · DistilBART · PEGASUS · T5
@@ -215,15 +216,6 @@ python training/train.py \
 ```
 
 ---
-
-## ROUGE Benchmark (CNN/DailyMail test set, 100 samples)
-
-| Model | ROUGE-1 | ROUGE-2 | ROUGE-L |
-|-------|---------|---------|---------|
-| `facebook/bart-large-cnn` (fine-tuned) | **0.442** | **0.213** | **0.410** |
-| `sshleifer/distilbart-cnn-12-6` | 0.428 | 0.208 | 0.295 |
-| `google/pegasus-cnn_dailymail` | 0.437 | 0.209 | 0.301 |
-| `t5-base` | 0.371 | 0.155 | 0.265 |
 
 ---
 
