@@ -1,5 +1,5 @@
 ---
-title: Advanced Text Summarization with BART
+title: Text Summarization — AI Agent + Groq
 emoji: 🔬
 colorFrom: blue
 colorTo: indigo
