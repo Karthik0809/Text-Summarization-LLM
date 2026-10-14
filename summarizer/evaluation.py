@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 class EvaluationResult:
     rouge1: float
     rouge2: float
-    rougeL: float
-    rougeLsum: float
+    rougeL: float  # noqa: N815 - the ROUGE metric name, used as a public field
+    rougeLsum: float  # noqa: N815 - the ROUGE metric name, used as a public field
     bert_score_f1: Optional[float]
     compression_ratio: float
     avg_sentence_length: float
@@ -38,8 +38,8 @@ def compute_bert_score(predictions: list[str], references: list[str]) -> Optiona
     try:
         from bert_score import score as bs
 
-        _, _, F1 = bs(predictions, references, lang="en", verbose=False)
-        return round(float(F1.mean().item()), 4)
+        _, _, f1 = bs(predictions, references, lang="en", verbose=False)
+        return round(float(f1.mean().item()), 4)
     except ImportError:
         logger.warning("bert-score not installed; skipping BERTScore.")
         return None
