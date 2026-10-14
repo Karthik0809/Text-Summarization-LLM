@@ -1,6 +1,6 @@
 """Unit tests for summarizer core utilities (no model loading required)."""
-from summarizer.ingestion import clean_text
 from summarizer.evaluation import compute_rouge, evaluate_single
+from summarizer.ingestion import clean_text
 
 
 def test_clean_text_collapses_whitespace():

@@ -6,16 +6,18 @@ import logging
 from dataclasses import asdict
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
 from api.schemas import (
-    AgentRequest, AgentResponse,
+    AgentRequest,
+    AgentResponse,
     BatchRequest,
     CompareRequest,
     HealthResponse,
     ModelInfo,
-    SummarizeRequest, SummarizeResponse,
+    SummarizeRequest,
+    SummarizeResponse,
     URLRequest,
 )
 from summarizer.core import DEFAULT_MODEL, MODELS, SummarizationEngine
