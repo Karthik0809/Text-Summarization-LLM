@@ -1,4 +1,4 @@
-"""Groq-backed summarization engine — llama-3.3-70b-versatile."""
+"""Groq-backed summarization engine — openai/gpt-oss-120b."""
 from __future__ import annotations
 
 import logging
@@ -11,13 +11,13 @@ from groq import Groq
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_MODEL = "openai/gpt-oss-120b"
 
 MODELS: dict[str, dict] = {
     DEFAULT_MODEL: {
-        "name":  "Llama 3.3 70B",
+        "name":  "GPT-OSS 120B",
         "badge": "Best",
-        "desc":  "Meta Llama 3.3 70B via Groq — ultra-fast, high accuracy summarization.",
+        "desc":  "OpenAI GPT-OSS 120B via Groq — ultra-fast, high accuracy summarization.",
         "size":  "API",
     }
 }
