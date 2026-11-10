@@ -116,6 +116,7 @@ def main() -> None:
         warmup_steps=500,
         weight_decay=0.01,
         learning_rate=args.learning_rate,
+        optim="adamw_torch",
         eval_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=True,
