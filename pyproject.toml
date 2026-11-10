@@ -21,7 +21,7 @@ classifiers = [
 ]
 dependencies = [
     "torch>=2.14.1",
-    "transformers>=4.40.0",
+    "transformers>=5.10.0",
     "datasets>=2.18.0",
     "evaluate>=0.4.6",
     "fastapi>=0.111.0",
